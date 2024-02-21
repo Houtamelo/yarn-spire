@@ -1,0 +1,4 @@
+[workspace]
+members = ["codegen", "tests", "yarn_spire"]
+resolver = "2"
+
