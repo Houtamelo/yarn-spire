@@ -1,4 +1,4 @@
 [workspace]
-members = ["codegen", "tests", "yarn_spire"]
+members = ["codegen"]
 resolver = "2"
 

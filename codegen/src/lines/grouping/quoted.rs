@@ -1,7 +1,6 @@
-use parsel::try_parse_quote;
 use proc_macro2::{Ident, Literal, Span, TokenStream};
-use quote::{quote, ToTokens};
-use syn::{Expr, Lit};
+use quote::{quote};
+
 use crate::expressions::yarn_expr::YarnExpr;
 use crate::expressions::yarn_ops::{YarnBinaryOp, YarnUnaryOp};
 use anyhow::{anyhow, Result};

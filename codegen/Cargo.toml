@@ -1,25 +1,22 @@
 [package]
 name = "yarn_spire_codegen"
 version = "0.0.0"
-authors = ["Houtamelo <antoniopedrogf@hotmail.com>"]
-description = "A `cargo generate` template for quick-starting a procedural macro crate"
-keywords = ["template", "proc_macro", "procmacro"]
+authors = ["Houtamelo <houtamelo@pm.me>"]
 edition = "2021"
-
-[lib]
-proc-macro = true
 
 [dependencies]
 quote = "1.0"
+quote-doctest = "0.3"
 proc-macro2 = "1.0"
 syn = { version = "2.0", features = ["full", "extra-traits", "visit", "visit-mut"] }
 glob = "0.3"
-corosensei = "0.1"
 trim-in-place = "0.1"
 fancy-regex = "0.13"
-fmtools = "0.1"
 houtamelo_utils = "1.1"
 thiserror = "1.0"
 anyhow = "1.0"
 parsel = "0.12"
 pretty_assertions = "1.4"
+genco = "0.17"
+toml = "0.8"
+serde = "1.0"

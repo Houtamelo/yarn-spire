@@ -1,6 +1,4 @@
 use fmtools::format;
-use proc_macro2::TokenStream;
-use quote::quote;
 use crate::expressions::{ParseError, ParseErrorType, SynBinOp, SynUnaryOp};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
