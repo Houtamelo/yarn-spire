@@ -1,5 +1,5 @@
-use fmtools::format;
-use crate::expressions::{ParseError, ParseErrorType, SynBinOp, SynUnaryOp};
+use anyhow::{Result, anyhow};
+use crate::expressions::{SynBinOp, SynUnaryOp};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum YarnUnaryOp {
@@ -15,17 +15,12 @@ impl YarnUnaryOp {
 		};
 	}
 	
-	pub(super) fn try_from_syn(unary_syn: SynUnaryOp) -> Result<Self, ParseError> {
+	pub(super) fn try_from_syn(unary_syn: SynUnaryOp) -> Result<Self> {
 		return match unary_syn {
 			SynUnaryOp::Not(_) => Ok(YarnUnaryOp::Not),
 			SynUnaryOp::Neg(_) => Ok(YarnUnaryOp::Negate),
-			invalid_op => { 
-				let error = ParseError { 
-					err: ParseErrorType::Yarn(format!("Invalid unary operator: "{invalid_op:?})),
-					compiler_line: line!(), 
-					compiler_file: file!(), 
-				};
-				Err(error)
+			invalid_op => {
+				Err(anyhow!("Invalid unary operator: {invalid_op:?}"))
 			},
 		};
 	}
@@ -44,7 +39,7 @@ pub enum YarnBinaryOp {
 }
 
 impl YarnBinaryOp {
-	pub(super) fn try_from_syn(syn_op: SynBinOp) -> Result<Self, ParseError> {
+	pub(super) fn try_from_syn(syn_op: SynBinOp) -> Result<Self> {
 		return match syn_op {
 			SynBinOp::Add(_) => Ok(YarnBinaryOp::Add),
 			SynBinOp::Sub(_) => Ok(YarnBinaryOp::Sub),
@@ -59,13 +54,8 @@ impl YarnBinaryOp {
 			SynBinOp::Le (_) => Ok(YarnBinaryOp::Le),
 			SynBinOp::Gt (_) => Ok(YarnBinaryOp::Gt), 
 			SynBinOp::Ge (_) => Ok(YarnBinaryOp::Ge),
-			invalid_op => { 
-				let error = ParseError { 
-					err: ParseErrorType::Yarn(format!("Invalid binary operator: "{invalid_op:?})),
-					compiler_line: line!(), 
-					compiler_file: file!(), 
-				};
-				Err(error)
+			invalid_op => {
+				Err(anyhow!("Invalid binary operator: {invalid_op:?}"))
 			},
 		};
 	}

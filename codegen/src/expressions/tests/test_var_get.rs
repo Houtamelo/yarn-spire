@@ -1,7 +1,7 @@
 macro_rules! assert_string_parse {
     ($lit: literal, $pattern: expr) => {{
 		let token_stream = proc_macro2::TokenStream::from_str($lit).unwrap();
-		let parse_result = crate::expressions::parse_expr_from_tokens(token_stream);
+		let parse_result = crate::expressions::parse_yarn_expr(token_stream);
 		match parse_result {
 			Ok(ok)   => { assert_eq!(ok, $pattern) }
 			Err(err) => { panic!("{err}") }

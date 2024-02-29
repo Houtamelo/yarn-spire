@@ -1,0 +1,37 @@
+title: Ch01_Awakening
+tags: #night #forest
+---
+
+<<fade_in 1.0>> #line:main_1
+<<cg "CG_ch01_Not-yet-awake">> #line:main_2
+{$Narrator}: You wake up. Something you shouldn't have done. #line:main_3
+<<fade_out 1.0>> #line:main_4
+
+<<if $ethel_awake == true>>
+    Ethel: Ugh... where am I? Why am I in a... tomb? ... Why am I naked? ... Why am I sticky? ... At this point: Do I want to know? #right:ethel_disgust #line:branch_awake_1
+    Ethel: Last thing I remember was... I feel like I have a reverse hangover... #right:ethel_tired #line:branch_awake_2
+    You rub your eyes. Your mouth tastes of {$mouth_taste} a stale metallic. #right:ethel_tired #line:branch_awake_3
+<<elseif $ethel_stamina > 30>>
+    Ethel: Ugh, at least I didn't wake up in a tomb this time... #right:ethel_tired #line:branch_stamina_1
+    Ethel: ... I hope. #right:ethel_worried #line:branch_stamina_2
+<<else>>
+    Narrator: Ethel couldn't wake up. #line:branch_else_1
+    <<stop>> #line:branch_else_2
+<<endif>>
+
+<<cg "CG_ch01_Awakening">> #line:main_6
+<<set $mouth_taste = "gold">>
+<<fade_out 1.0>> #line:main_9
+You scan the area. Something feels... off. ''Very'' off. #line:main_10
+You're not alone... #line:main_11
+
+-> Look Around #line:main_12
+    Ethel: Sis! #right:ethel_worried #left:nema_tired #line:option_look_1
+    You slip trying to get up. #right:ethel_worried #left:nema_tired #line:option_look_2
+-> Go to sleep #line:main_13 <<if $ethel_sleeping>>
+    <<fade_in 1.>> #line:option_sleep_1
+    <<sfx_wait "dressing">> #line:option_sleep_2
+    <<jump Ch01_First_Fight>> #line:option_sleep_3
+    
+{$Narrator}: And the scene ended here. #line:main_14
+===

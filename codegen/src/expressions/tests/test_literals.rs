@@ -33,7 +33,7 @@ fn test_literal_float() {
 fn test_literal_str() {
 	let hello_str = "hello".to_string();
 	let token_stream = proc_macro2::TokenStream::from_str("\"hello\"").unwrap();
-	let parse_result = crate::expressions::parse_expr_from_tokens(token_stream);
+	let parse_result = crate::expressions::parse_yarn_expr(token_stream);
 	match parse_result {
 		Ok(ok) => { assert_eq!(ok, YarnExpr::Lit(YarnLit::Str(hello_str))) }
 		Err(err) => { panic!("{err}") }
@@ -41,7 +41,7 @@ fn test_literal_str() {
 
 	let phrase_str = "hello, world!".to_string();
 	let token_stream = proc_macro2::TokenStream::from_str("\"hello, world!\"").unwrap();
-	let parse_result = crate::expressions::parse_expr_from_tokens(token_stream);
+	let parse_result = crate::expressions::parse_yarn_expr(token_stream);
 	match parse_result {
 		Ok(ok) => { assert_eq!(ok, YarnExpr::Lit(YarnLit::Str(phrase_str))) }
 		Err(err) => { panic!("{err}") }

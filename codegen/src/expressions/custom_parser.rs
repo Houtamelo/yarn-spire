@@ -69,11 +69,7 @@ impl Parse for CustomExpr {
 			}
 		}
 		
-		let final_tokens = 
-			new_tokens.to_string()
-					  .parse()?;
-		
-		let expr = syn::parse2(final_tokens)?;
+		let expr = syn::parse2(new_tokens)?;
 		Ok(CustomExpr(expr))
 	}
 }

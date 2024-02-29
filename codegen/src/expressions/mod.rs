@@ -4,59 +4,21 @@ pub mod yarn_ops;
 pub mod yarn_expr;
 mod custom_parser;
 
-use std::fmt::Display;
+use custom_parser::CustomExpr;
 use std::ops::Deref;
-use fmtools::format as format;
-use trim_in_place::TrimInPlace;
 use yarn_expr::YarnExpr;
 use yarn_lit::YarnLit;
 use yarn_ops::{YarnBinaryOp, YarnUnaryOp};
-use crate::expressions::custom_parser::CustomExpr;
-use thiserror::Error;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
+use quote::ToTokens;
+use syn::Stmt;
+use crate::expressions::yarn_expr::DeclarationTy;
 
 type SynExpr = syn::Expr;
 type SynError = syn::Error;
 type SynBinOp = syn::BinOp;
 type SynLit = syn::Lit;
 type SynUnaryOp = syn::UnOp;
-
-#[derive(Debug, Clone)]
-#[derive(Error)]
-pub struct ParseError {
-	err: ParseErrorType,
-	compiler_line: u32,
-	compiler_file: &'static str,
-}
-
-impl Display for ParseError {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		return match &self.err {
-			ParseErrorType::Syn(syn_err) => write!(f, "Parse error in file: {}.\n\
-			At line: {}\n\
-			Error: {syn_err}", self.compiler_file, self.compiler_line),
-			ParseErrorType::Yarn(yarn_err) => write!(f, "Parse error in file: {}.\n\
-			At line: {}\n\
-			Error: {yarn_err}", self.compiler_file, self.compiler_line),
-		};
-	}
-}
-
-impl PartialEq for ParseError {
-	fn eq(&self, other: &Self) -> bool {
-		if self.compiler_line != other.compiler_line
-			|| self.compiler_file != other.compiler_file {
-			return false;
-		}
-			
-		return match (&self.err, &other.err) {
-			(ParseErrorType::Yarn(yarn_err), ParseErrorType::Yarn(other_yarn_err)) => { 
-				yarn_err == other_yarn_err
-			},
-			_ => false,
-		};
-	}
-}
 
 
 #[derive(Debug, Clone)]
@@ -65,12 +27,14 @@ pub enum ParseErrorType {
 	Yarn(String),
 }
 
-pub fn parse_expr_from_tokens(token_stream: proc_macro2::TokenStream) -> Result<YarnExpr> {
-	return syn::parse2::<CustomExpr>(token_stream)
+pub fn parse_yarn_expr(input: &str) -> Result<YarnExpr> {
+	syn::parse_str::<CustomExpr>(input)
 		.map(|custom| custom.0)
-		.map_err(|err| anyhow::anyhow!("Syn error when parsing: {err}"))
-		.and_then(|expr| 
-			parse_from_syn_expr(expr));
+		.map_err(|err| anyhow!(
+			"Could not parse input: {input}\n\
+			 Syn Error: {err}"))
+		.and_then(|expr|
+			parse_from_syn_expr(expr))
 }
 
 fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
@@ -86,13 +50,14 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 			})
 		},
 		SynExpr::Call(call) => {
-			let func_name = quote::ToTokens::into_token_stream(call.func).to_string();
-			let args = call.args
-				.into_iter()
-				.map(|arg| parse_from_syn_expr(arg))
-				.collect::<Result<Vec<YarnExpr>>>()?;
+			let func_name = ToTokens::into_token_stream(call.func).to_string();
+			let args =
+				call.args
+				    .into_iter()
+				    .map(parse_from_syn_expr)
+				    .try_collect()?;
 
-			Ok(YarnExpr::FunctionCall {
+			Ok(YarnExpr::CustomFunctionCall {
 				func_name,
 				args,
 			})
@@ -165,44 +130,74 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 		},
 		SynExpr::Array(array) => {
 			if array.elems.len() != 1 {
-				return Err(ParseError { 
-					err: ParseErrorType::Yarn(format!("Array expressions are not allowed: "{array:?})),
-					compiler_line: line!(),
-					compiler_file: file!(),
-				}.into());
+				Err(anyhow!("Array expressions are not allowed: {array:?}"))
+			} else {
+				parse_from_syn_expr(array.elems.into_iter().next().unwrap())
 			}
+		},
+		SynExpr::Block(mut inner) => {
+			if inner.block.stmts.len() != 1 {
+				Err(anyhow!("Rust code is not allowed: {inner:?}"))
+			} else {
+				let stmt = inner.block.stmts.remove(0);
+				match stmt.clone() {
+					Stmt::Expr(expr, punct) => {
+						if punct.is_some() {
+							Err(anyhow!("Rust code is not allowed: {stmt:?}"))
+						} else {
+							parse_from_syn_expr(expr)
+						}
+					}
+					| Stmt::Item(_)
+					| Stmt::Macro(_)
+					| Stmt::Local(_) => {
+						Err(anyhow!("Rust code is not allowed: {stmt:?}"))
+					}
+				}
+			}
+		},
+		SynExpr::Cast(cast) => {
+			let expr = parse_from_syn_expr(*cast.expr)?;
 			
-			let variable_name = {
-				let mut temp = quote::ToTokens::to_token_stream(&array.elems[0]).to_string();
-				temp.trim_in_place();
-				temp
-			};
-
-			if variable_name.chars()
-				.all(|ch| ch.is_ascii_alphanumeric() || ch == '_') {
-				Ok(YarnExpr::VarGet(variable_name.to_string()))
-			}
-			else {
-				let error = ParseError {
-					err: ParseErrorType::Yarn(format!("Invalid verbatim expression: "{variable_name}"\n\
-						The only valid verbatim expression is getting variables (Pattern: `$var_name`).\
-						This expression starts with a dollar sign but contains characters that aren't `_` or alphanumeric.")),
-					compiler_line: line!(),
-					compiler_file: file!(),
+			let unparsed_ty = *cast.ty;
+			let Some(cast_ty) = DeclarationTy::from_syn(unparsed_ty.clone()) 
+				else {
+					return Err(anyhow!("Invalid cast type: {unparsed_ty:?}"));
 				};
-
-				Err(error.into())
+			
+			Ok(YarnExpr::Cast {
+				cast_ty,
+				expr: Box::from(expr),
+			})
+		},
+		SynExpr::Verbatim(verbatim) => {
+			let verb_str = verbatim.to_string().trim().to_string();
+			if verb_str.is_empty() {
+				Err(anyhow!("Verbatim expression only contained whitespace."))
+			} else if verb_str.chars().any(|c| !c.is_alphanumeric() && c != '_') {
+				Err(anyhow!(
+					"Could not parse verbatim expression as Identifier.\n\
+				     Error: expression contained invalid characters: {verb_str:?}"))
+			} else {
+				Ok(YarnExpr::Identifier(verb_str))
 			}
-		}
+		},
+		SynExpr::Path(path) => {
+			if path.qself.is_some() {
+				Err(anyhow!("Path expressions are not allowed: {path:?}"))
+			} else if let Some(ident) = path.path.get_ident() {
+				Ok(YarnExpr::Identifier(ident.to_string()))
+			} else {
+				Err(anyhow!("Path expressions are not allowed: {path:?}"))
+			}
+		},
 		invalid_expr => {
 			let ty_msg = match invalid_expr {
 				SynExpr::Array(_) => "array",
 				SynExpr::Assign(_) => "assign",
 				SynExpr::Async(_) => "async",
 				SynExpr::Await(_) => "await",
-				SynExpr::Block(_) => "block",
 				SynExpr::Break(_) => "break",
-				SynExpr::Cast(_) => "cast",
 				SynExpr::Closure(_) => "closure",
 				SynExpr::Const(_) => "const",
 				SynExpr::Continue(_) => "continue",
@@ -215,7 +210,6 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 				SynExpr::Macro(_) => "macro",
 				SynExpr::Match(_) => "match",
 				SynExpr::MethodCall(_) => "method call",
-				SynExpr::Path(_) => "path",
 				SynExpr::Range(_) => "range",
 				SynExpr::Reference(_) => "reference",
 				SynExpr::Repeat(_) => "repeat",
@@ -225,18 +219,12 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 				SynExpr::TryBlock(_) => "try block",
 				SynExpr::Tuple(_) => "tuple",
 				SynExpr::Unsafe(_) => "unsafe",
-				SynExpr::Verbatim(_) => "verbatim",
 				SynExpr::While(_) => "while",
-				SynExpr::Yield(_) => "compass",
+				SynExpr::Yield(_) => "yield",
 				_ => unreachable!()
 			};
 			
-			let error = ParseError {
-				err: ParseErrorType::Yarn(format!("Invalid expression type: "{ty_msg}": "{invalid_expr:?})),
-				compiler_line: line!(), 
-				compiler_file: file!(), 
-			};
-			Err(error.into())
+			Err(anyhow!("Invalid expression type: {ty_msg}: {invalid_expr:?}"))
 		}
 	};
 }

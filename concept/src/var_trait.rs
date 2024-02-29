@@ -54,7 +54,7 @@ use crate::shared_internal::*;
 /// Although using YarnVar requires additional "boilerplate" code, 
 /// it saves time and effort in the long run by preventing runtime errors.
 /// **This is the philosophy behind the design of this library.**
-pub trait YarnVar: Sized + Clone {
+pub trait YarnVar {
 	type Return;
 
 	fn get(storage: &Storage) -> Self::Return;

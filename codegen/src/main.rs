@@ -11,16 +11,22 @@
 #![feature(stmt_expr_attributes)]
 #![feature(proc_macro_expand)]
 #![feature(iterator_try_collect)]
+#![feature(extract_if)]
+#![feature(coroutine_trait)]
+#![feature(iter_from_coroutine)]
+
+extern crate core;
 
 mod expressions;
-mod lines;
+mod parsing;
 mod io;
 mod config;
+mod quoting;
 
 use anyhow::Result;
-use lines::parse_as_nodes;
+use io::read;
+use parsing::parse_as_nodes;
 use crate::config::YarnConfig;
-use crate::lines::YarnNode;
 
 type LineNumber = usize;
 type Indent = isize;
@@ -36,19 +42,20 @@ pub fn main() -> Result<()> {
 		YarnConfig::parse_file("/yarn_project.toml")?;
 	
 	let yarn_files = 
-		io::find_and_read_yarn_files(config.yarn_folder(), config.folders_to_exclude())?;
+		read::find_and_read_yarn_files(&config)?;
 	
-	let nodes =
+	let (nodes, var_declarations) =
 		yarn_files
 			.into_iter()
 			.map(|source_lines| 
 				parse_as_nodes(source_lines))
-			.try_fold(Vec::new(), |sum, node_result| {
-				let node = node_result?;
-				sum.extend(node);
-				Result::<Vec<YarnNode>>::Ok(sum)
+			.try_fold((vec![], vec![]), |(mut nodes_sum, mut vars_sum), node_result| {
+				let (nodes, var_declarations) = node_result?;
+				nodes_sum.extend(nodes);
+				vars_sum.extend(var_declarations);
+				Result::<_>::Ok((nodes_sum, vars_sum))
 			})?;
 	
-	Ok(())
+	io::write::generate_and_write(&config, nodes, var_declarations)
 }
 

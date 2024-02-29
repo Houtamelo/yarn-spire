@@ -3,8 +3,10 @@
 #![allow(unused)]
 
 use std::fmt::Debug;
+
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
+
 use crate::shared_internal::*;
 
 /// The original YarnSpinner's [tracking setting](https://docs.yarnspinner.dev/getting-started/writing-in-yarn/tags-metadata#the-tracking-header).
@@ -14,16 +16,17 @@ pub enum TrackingSetting {
 	Never,
 }
 
-#[enum_dispatch]
-#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
-pub enum NodeTitle {
-	Ch01_Awakening,
-}
-
 #[enum_dispatch(NodeTitle)]
 pub(crate) trait NodeTitleTrait {
 	fn tags(&self) -> &'static[&'static str];
-	fn tracking(&self) -> Option<TrackingSetting>;
+	fn tracking(&self) -> TrackingSetting;
 	fn custom_metadata(&self) -> &'static[&'static str];
-	fn start(&self) -> YieldResult;
+	fn start(&self, storage: &mut Storage) -> YarnYield;
+}
+
+#[enum_dispatch]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum NodeTitle {
+	Ch01_Awakening,
+	Ch01_First_Fight,
 }

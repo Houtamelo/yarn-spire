@@ -3,66 +3,35 @@
 #![allow(unused)]
 
 use serde::{Deserialize, Serialize};
-use enum_dispatch::enum_dispatch;
-use houtamelo_utils::prelude::*;
+
 use crate::shared_internal::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum Line {
+pub enum Instruction {
 	Speech(SpeechLine),
 	Command(CommandLine),
-	Options(OptionsLine),
+	Options(OptionsFork),
 }
 
-pub enum YieldResult {
-	Line(Line),
+pub enum YarnYield {
+	Instruction(Instruction),
 	Finished,
 }
 
-impl From<SpeechLine> for Line { 
-	fn from(speech_line: SpeechLine) -> Self { Line::Speech(speech_line) }
+impl From<Instruction> for YarnYield {
+	fn from(value: Instruction) -> Self {
+		YarnYield::Instruction(value)
+	}
 }
 
-impl From<CommandLine> for Line { 
-	fn from(command_line: CommandLine) -> Self { Line::Command(command_line) }
+impl From<SpeechLine> for Instruction { 
+	fn from(speech_line: SpeechLine) -> Self { Instruction::Speech(speech_line) }
 }
 
-impl From<OptionsLine> for Line { 
-	fn from(options_line: OptionsLine) -> Self { Line::Options(options_line) }
+impl From<CommandLine> for Instruction { 
+	fn from(command_line: CommandLine) -> Self { Instruction::Command(command_line) }
 }
 
-#[enum_dispatch]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum SpeechLine {
-	Ch01_Awakening_Speech,
-}
-
-#[enum_dispatch(SpeechLine)]
-pub(crate) trait SpeechTrait {
-	fn next(&self, storage: &mut Storage) -> YieldResult;
-	fn speech(&self) -> Speech;
-}
-
-#[enum_dispatch]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum CommandLine {
-	Ch01_Awakening_Command,
-}
-
-#[enum_dispatch(CommandLine)]
-pub(crate) trait CommandTrait {
-	fn next(&self, storage: &mut Storage) -> YieldResult;
-	fn command(&self) -> YarnCommand;
-}
-
-#[enum_dispatch]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum OptionsLine {
-	Ch01_Awakening_Options,
-}
-
-#[enum_dispatch(OptionsLine)]
-pub(crate) trait OptionsTrait {
-	fn next(&self, storage: &mut Storage, player_decision: PlayerDecision) -> YieldResult;
-	fn options(&self) -> CountOrMore<1, ChoiceOption>;
+impl From<OptionsFork> for Instruction { 
+	fn from(options_line: OptionsFork) -> Self { Instruction::Options(options_line) }
 }

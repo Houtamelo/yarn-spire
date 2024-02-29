@@ -2,20 +2,22 @@
 #![allow(non_snake_case)]
 #![allow(unused)]
 
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+
 use crate::shared_internal::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OutputHistory {
 	start_yield: YieldCounter,
-	lines: Vec<Line>,
+	lines: Vec<Instruction>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Runtime {
 	current_node: NodeTitle,
-	current_line: Line,
+	current_line: Instruction,
 	current_storage: Storage,
 	yield_counter: YieldCounter,
 	output_history: OutputHistory,
@@ -25,7 +27,7 @@ pub struct Runtime {
 
 impl Runtime {
 	pub fn current_node(&self) -> &NodeTitle { &self.current_node }
-	pub fn current_line(&self) -> &Line { &self.current_line }
+	pub fn current_line(&self) -> &Instruction { &self.current_line }
 	pub fn yield_counter(&self) -> YieldCounter { self.yield_counter }
 	pub fn output_history(&self) -> &OutputHistory { &self.output_history }
 	pub fn player_decisions(&self) -> &HashMap<YieldCounter, PlayerDecision> { &self.player_decisions }
@@ -45,15 +47,15 @@ impl Runtime {
 		self.player_decisions.insert(yield_counter, player_decision);
 	}
 	
-	fn push_yield(&mut self, r#yield: &YieldResult) {
-		match r#yield {
-			YieldResult::Line(instruction) => {
+	fn push_yield(&mut self, yarn_yield: &YarnYield) {
+		match yarn_yield {
+			YarnYield::Instruction(instruction) => {
 				self.output_history.lines.push(instruction.clone());
 				self.yield_counter += 1;
-			}
-			YieldResult::Finished => {
-				self.current_storage.increment_visited(self.current_node);
-			}
+			},
+			YarnYield::Finished => {
+				self.current_storage.increment_visited(&self.current_node);
+			},
 		}
 	}
 }
