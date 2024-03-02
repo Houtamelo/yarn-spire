@@ -1,9 +1,9 @@
 use genco::lang::rust::Tokens;
 use genco::quote;
 use crate::config::YarnConfig;
-use crate::quoting::helper::{Comments, SeparatedItems};
+use crate::quoting::util::{Comments, SeparatedItems};
 use crate::quoting::quotable_types::enums::SUFFIX_SPEECH;
-use crate::quoting::quotable_types::node::IDNode;
+use crate::quoting::quotable_types::node::{IDNode, LinesMap};
 
 fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 	quote! {
@@ -21,8 +21,8 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 			fn next(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
 			
 			$(Comments([
-				r#"The line's unique identifier, if specified, for more,
-				 see [metadata#line](https://docs.yarnspinner.dev/getting-started/writing-in-yarn/tags-metadata#line)"#]))
+				"The line's unique identifier, if specified, for more, \n\
+				 see [metadata#line](https://docs.yarnspinner.dev/getting-started/writing-in-yarn/tags-metadata#line)"]))
 			fn line_id(&self) -> Option<&'static str>;
 		
 			$(Comments([
@@ -44,8 +44,8 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 				r#"The speaker would be: `Some("Houtamelo")`"#,
 				r#"Then consider the line: `$player_name: This is the first line`"#,
 				r#"The speaker would be: `Some(storage.get_var::<player_name>())`"#,
-				r#"On the case above, it is expected that `get_var::<player_name>()` returns a string, 
-				 if it doesn't, the code won't compile."#])),
+				"On the case above, it is expected that `get_var::<player_name>()` returns a string, \n\
+				 if it doesn't, the code won't compile."])),
 			fn speaker(&self, storage: &$(&cfg.storage_direct)) -> Option<Cow<'static, str>>;
 		
 			$(Comments([
@@ -63,17 +63,22 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 	}
 }
 
-fn tokens_enum(nodes: &[IDNode]) -> Tokens {
+fn tokens_enum(nodes_mapped: &[(&IDNode, LinesMap)]) -> Tokens {
 	let titles =
-		nodes.iter()
-		     .map(|node| {
-			     let title = node.metadata.title.clone() + SUFFIX_SPEECH;
-			     quote! { $(title) }
-		     });
+		nodes_mapped
+			.iter()
+			.filter_map(|(node, lines_map)| {
+				if lines_map.speeches.len() > 0 {
+					let title = node.metadata.title.clone() + SUFFIX_SPEECH;
+					Some(quote! { $(title) })
+				} else {
+					None
+				}
+			});
 	
 	quote! {
 		#[enum_dispatch]
-		#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+		#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 		pub enum SpeechLine {
 			$(SeparatedItems(titles, ",\n"))
 		}
@@ -81,12 +86,12 @@ fn tokens_enum(nodes: &[IDNode]) -> Tokens {
 }
 
 pub fn all_tokens(cfg: &YarnConfig,
-                  nodes: &[IDNode])
+                  nodes_mapped: &[(&IDNode, LinesMap)])
                   -> Tokens {
 	let imports_and_trait = 
 		tokens_imports_and_trait(cfg);
 	let enum_tokens =
-		tokens_enum(nodes);
+		tokens_enum(nodes_mapped);
 	
 	quote! {
 		$(imports_and_trait)

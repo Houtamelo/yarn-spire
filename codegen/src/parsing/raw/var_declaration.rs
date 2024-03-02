@@ -1,10 +1,10 @@
 use std::iter::Peekable;
 use std::str::Chars;
-use crate::expressions::yarn_expr::{BuiltInFunctionCall, DeclarationTy, YarnExpr};
+use crate::expressions::yarn_expr::YarnExpr;
 use crate::{LineNumber, UnparsedLine};
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
+use crate::expressions::declaration_ty::DeclarationTy;
 use crate::expressions::parse_yarn_expr;
-use crate::expressions::yarn_lit::YarnLit;
 use crate::parsing::macros::{strip_end_then_trim, strip_start_then_trim, trim};
 
 pub struct VarDeclaration {
@@ -16,57 +16,11 @@ pub struct VarDeclaration {
 
 impl VarDeclaration {
 	pub fn infer_ty(&self) -> Option<DeclarationTy> {
-		if let Some(cast_ty) = self.cast_ty {
-			return Some(cast_ty);
-		}
-		
-		return infer_expr(&self.default_value);
-		
-		fn infer_expr(expr: &YarnExpr) -> Option<DeclarationTy> {
-			return match expr {
-				YarnExpr::Lit(lit) => {
-					match lit {
-						YarnLit::Int(_) => Some(DeclarationTy::isize),
-						YarnLit::Float(_) => Some(DeclarationTy::f64),
-						YarnLit::Str(_) => Some(DeclarationTy::String),
-						YarnLit::Bool(_) => Some(DeclarationTy::bool),
-					}
-				}
-				| YarnExpr::Parenthesis(inner_expr) 
-				| YarnExpr::UnaryOp { right: inner_expr, .. } => 
-					infer_expr(inner_expr),
-				YarnExpr::BinaryOp { left, right, .. } => 
-					infer_expr(left).or_else(|| infer_expr(right)),
-				YarnExpr::BuiltInFunctionCall(built_in_call) => {
-					match built_in_call {
-						BuiltInFunctionCall::FormatInvariant(_) => 
-							Some(DeclarationTy::String),
-						BuiltInFunctionCall::Random => 
-							Some(DeclarationTy::f64),
-						BuiltInFunctionCall::RandomRange(lower, upper) => 
-							infer_expr(lower).or_else(|| infer_expr(upper)),
-						| BuiltInFunctionCall::Dice(_)
-						| BuiltInFunctionCall::Round(_)
-						| BuiltInFunctionCall::RoundPlaces(_, _)
-						| BuiltInFunctionCall::Floor(_)
-						| BuiltInFunctionCall::Ceil(_)
-						| BuiltInFunctionCall::Inc(_) 
-						| BuiltInFunctionCall::Dec(_)
-						| BuiltInFunctionCall::Int(_) => 
-							Some(DeclarationTy::isize),
-						BuiltInFunctionCall::Decimal(_) =>
-							Some(DeclarationTy::f64),
-					}
-				}
-				YarnExpr::Cast { cast_ty, .. } => 
-					Some(*cast_ty),
-				| YarnExpr::Identifier(_)
-				| YarnExpr::CustomFunctionCall {..}
-				| YarnExpr::VarGet(_) => {
-					None
-				}
-			};
-		}
+		return if let Some(cast_ty) = self.cast_ty {
+			Some(cast_ty)
+		} else {
+			self.default_value.infer_ty()
+		};
 	}
 }
 
@@ -355,7 +309,7 @@ fn parse_args(args_iter: &mut ArgBuilder) -> Result<(String, YarnExpr, Option<De
 					 Variable name: {unparsed_string}")
 				)?;
 
-		let YarnExpr::VarGet(name) = expr 
+		let YarnExpr::GetVar(name) = expr 
 			else {
 				return Err(anyhow!(
 					"Expected `variable name` argument to be `YarnExpr::VarGet(var_name)`.\n\
@@ -433,7 +387,7 @@ impl VarDeclaration {
 
 		match parse_args(&mut args_iter) {
 			Ok((var_name, default_value, cast_ty)) => {
-				if default_value.iter_exprs().any(|expr| matches!(expr, YarnExpr::VarGet(_))) {
+				if default_value.iter_exprs().any(|expr| matches!(expr, YarnExpr::GetVar(_))) {
 					Some(Err(anyhow!(
 						"Could not parse line as `declare` statement(`<<declare $var_name [default_value]>>`).\n\
 						 Error: Custom variables(`$var_name`) are not allowed in default values.")))

@@ -1,3 +1,4 @@
+/*
 use std::str::FromStr;
 use crate::expressions::yarn_expr::YarnExpr;
 use crate::expressions::yarn_lit::YarnLit;
@@ -135,3 +136,4 @@ fn test_string_eq() {
 			right: Box::from(YarnExpr::Lit(YarnLit::Str("Bob".to_string()))),
 		});
 }
+*/

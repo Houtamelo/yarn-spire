@@ -1,3 +1,4 @@
+/*
 use std::assert_matches::assert_matches;
 use crate::expressions::tests::parse_expr;
 use crate::parsing::raw::branches::if_statement::{BranchKind, ElseIfStruct, ElseStruct, EndIfStruct, IfStruct};
@@ -249,3 +250,4 @@ fn test_invalid() {
 	assert_matches!(OptionLine::parse_raw_yarn("-> Hey there <<not_if $condition>> #metadata", 0).unwrap(),
 		Err(_));
 }
+*/

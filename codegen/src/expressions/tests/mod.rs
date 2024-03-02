@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 mod test_literals;
 mod test_var_get;
 mod test_unary;

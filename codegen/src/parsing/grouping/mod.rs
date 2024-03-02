@@ -5,7 +5,6 @@ use anyhow::Result;
 pub mod options;
 pub mod if_branch;
 pub mod scope;
-pub mod quoted;
 
 pub fn raw_lines_into_scopes(raw_lines: Vec<RawLine>) -> Result<Vec<YarnScope>> {
 	let mut stream_buffer =

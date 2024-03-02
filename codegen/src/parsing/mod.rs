@@ -8,17 +8,22 @@ use grouping::raw_lines_into_scopes;
 use raw::parse_raw_nodes;
 use grouping::scope::YarnScope;
 use raw::node_metadata::NodeMetadata;
+use crate::io::read::YarnFile;
 use crate::parsing::raw::var_declaration::VarDeclaration;
-use crate::UnparsedLine;
 
 pub struct YarnNode {
 	pub metadata: NodeMetadata,
 	pub contents: Vec<YarnScope>,
 }
 
-pub fn parse_as_nodes(source_lines: Vec<UnparsedLine>) -> Result<(Vec<YarnNode>, Vec<VarDeclaration>)> {
+pub fn parse_nodes(yarn_file: YarnFile) -> Result<(Vec<YarnNode>, Vec<VarDeclaration>)> {
 	let (raw_nodes, var_declarations) = 
-		parse_raw_nodes(source_lines)?;
+		parse_raw_nodes(yarn_file.lines)
+			.map_err(|err| anyhow!(
+				"Could not parse raw nodes from file.\n\
+				 Path: {}\n\
+				 Error: {err}", yarn_file.path.display())
+			)?;
 
 	let finished_nodes =
 		raw_nodes

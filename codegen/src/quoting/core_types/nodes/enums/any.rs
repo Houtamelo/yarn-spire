@@ -1,10 +1,10 @@
 use genco::prelude::rust::Tokens;
 use genco::quote;
 use crate::config::YarnConfig;
-use crate::quoting::helper::SeparatedItems;
+use crate::quoting::util::SeparatedItems;
 use crate::quoting::quotable_types::enums::LineEnum;
 use crate::quoting::quotable_types::enums;
-use crate::quoting::quotable_types::node::LinesMap;
+use crate::quoting::quotable_types::node::{IDNode, LinesMap};
 
 fn tokens_imports(cfg: &YarnConfig) -> Tokens {
 	quote! {
@@ -37,7 +37,7 @@ fn tokens_enum(lines_map: &LinesMap,
 			.map(LineEnum::variant_name);
 	
 	quote! {
-		#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+		#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 		pub enum $enum_name {
 			$(SeparatedItems(enum_variants, ",\n"))
 		}
@@ -94,24 +94,30 @@ fn tokens_from_impl(lines_map: &LinesMap,
 }
 
 pub fn all_tokens(cfg: &YarnConfig,
-                  node_title: &str,
+                  node: &IDNode,
                   lines_map: &LinesMap)
-                  -> Tokens {
+                  -> Option<Tokens> {
+	if lines_map.speeches.is_empty() 
+		&& lines_map.commands.is_empty()
+		&& lines_map.options_forks.is_empty() {
+		return None;
+	}
+	
 	let enum_name =
-		&enums::enum_type_any(node_title);
+		enums::enum_type_any(&node.metadata.title);
 	
 	let tokens_imports =
 		tokens_imports(cfg);
 	let tokens_enum = 
-		tokens_enum(lines_map, enum_name);
+		tokens_enum(lines_map, &enum_name);
 	let tokens_from_impl =
-		tokens_from_impl(lines_map, enum_name);
+		tokens_from_impl(lines_map, &enum_name);
 	
-	quote! {
+	Some(quote! {
 		$tokens_imports
 		
 		$tokens_enum
 		
 		$tokens_from_impl
-	}
+	})
 }

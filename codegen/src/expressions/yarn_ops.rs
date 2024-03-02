@@ -1,4 +1,7 @@
 use anyhow::{Result, anyhow};
+use genco::lang::Rust;
+use genco::prelude::FormatInto;
+use genco::{quote_in, Tokens};
 use crate::expressions::{SynBinOp, SynUnaryOp};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +28,21 @@ impl YarnUnaryOp {
 		};
 	}
 }
+
+
+impl FormatInto<Rust> for &YarnUnaryOp {
+	fn format_into(self, tokens: &mut Tokens<Rust>) {
+		match self {
+			YarnUnaryOp::Not => {
+				quote_in!(*tokens => !);
+			},
+			YarnUnaryOp::Negate => {
+				quote_in!(*tokens => -);
+			},
+		}
+	}
+}
+
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,5 +88,51 @@ impl YarnBinaryOp {
 			YarnBinaryOp::Lt  => "<" , YarnBinaryOp::Le  => "<=",
 			YarnBinaryOp::Gt  => ">" , YarnBinaryOp::Ge  => ">=",
 		};
+	}
+}
+
+impl FormatInto<Rust> for &YarnBinaryOp {
+	fn format_into(self, tokens: &mut Tokens<Rust>) {
+		match self {
+			YarnBinaryOp::Add => {
+				quote_in!(*tokens => +);
+			},
+			YarnBinaryOp::Sub => {
+				quote_in!(*tokens => -);
+			},
+			YarnBinaryOp::Mul => {
+				quote_in!(*tokens => *);
+			},
+			YarnBinaryOp::Div => {
+				quote_in!(*tokens => /);
+			},
+			YarnBinaryOp::Rem => {
+				quote_in!(*tokens => %);
+			},
+			YarnBinaryOp::And => {
+				quote_in!(*tokens => &&);
+			},
+			YarnBinaryOp::Or => {
+				quote_in!(*tokens => ||);
+			},
+			YarnBinaryOp::Eq => {
+				quote_in!(*tokens => ==);
+			},
+			YarnBinaryOp::Ne => {
+				quote_in!(*tokens => !=);
+			},
+			YarnBinaryOp::Lt => {
+				quote_in!(*tokens => <);
+			},
+			YarnBinaryOp::Le => {
+				quote_in!(*tokens => <=);
+			},
+			YarnBinaryOp::Gt => {
+				quote_in!(*tokens => >);
+			},
+			YarnBinaryOp::Ge => {
+				quote_in!(*tokens => >=);
+			},
+		}
 	}
 }

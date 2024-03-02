@@ -2,16 +2,16 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
 use anyhow::{Result, anyhow};
-use genco::lang::rust;
-use genco::prelude::rust::Import;
+use encoding_rs_io::DecodeReaderBytesBuilder;
 use serde::Deserialize;
 
 pub struct YarnConfig {
-	pub storage_qualified: Import,
-	pub storage_direct: Import,
-	pub command_qualified: Import,
-	pub command_direct: Import,
-	pub shared_qualified: Import,
+	pub storage_qualified: String,
+	pub storage_direct: String,
+	pub command_qualified: String,
+	pub command_direct: String,
+	pub shared_qualified: String,
+	pub vars_qualified: String,
 	pub allow_overwrite: bool,
 	pub generate_storage: bool,
 	pub destination_os_path: PathBuf,
@@ -25,6 +25,7 @@ struct DeserializableConfig {
 	storage_type_name: String,
 	command_module_path: String,
 	command_type_name: String,
+	vars_module_path: String,
 	allow_overwrite: bool,
 	generate_storage: bool,
 	destination_os_path: String,
@@ -33,128 +34,156 @@ struct DeserializableConfig {
 	exclude_yarn_folders: Vec<String>,
 }
 
-impl YarnConfig {
-	fn read_file(path: &str) -> Result<String> {
-		let file = std::fs::File::open(path)
+fn read_file() -> Result<String> {
+	let path_buf =
+		PathBuf::from_str("yarn_project.toml")
+			.map_err(|err| anyhow!(
+				"Could not parse `Config` file path into `PathBuf`.\n\
+				 Path: `yarn_project.toml`\n\
+				 Error: `{err}`\n\n\
+				 Help: Ensure the `Config` file path is a valid OS file-system path. (like `/src/dialogues/nodes/config.toml`)")
+			)?;
+
+	let file =
+		std::fs::File::open(path_buf)
 			.map_err(|err| anyhow!(
 				"Could not open `Config` file.\
-				 Path: `{path}`\n\
+				 Path: `yarn_project.toml`\n\
 				 Error: `{err}`\n\n\
 				 Help: This program might need additional permissions to access this file.\n\
-				 Help: Try running the program as an administrator."
-			))?;
-		
-		let mut buffer = String::new();
-		let mut reader = std::io::BufReader::new(file);
-		reader.read_to_string(&mut buffer)
-			.map_err(|err| anyhow!(
-				"Could not read `Config` file.\
-				 Path: `{path}`\n\
-				 Error: `{err}`\n\n\
-				 Help: This program might need additional permissions to access this file.\n\
-				 Help: Try running the program as an administrator."
-			))?;
-		
-		Ok(buffer)
-	}
-	
-	fn deserialize(toml_input: String) -> Result<DeserializableConfig> {
-		return toml::from_str(&toml_input)
-			.map_err(|err| anyhow!(
-				"Could not parse `Config` file as `DeserializableConfig`.\n\
-				 Input: `{toml_input}`\n\
-				 Error: `{err}`\n\n\
-				 Ensure the file is in a valid format, example:\n\
-				 ```toml\n\
-				 # Storage variable's module path without the type name.
-				  (This should be empty if `generate_storage` is `true`)
-				 storage_path = \"crate::dialogues\"\n\
-				 # Storage variable's type name. (do not include the path)
-				 storage_type_name = \"MyVariablesStorage\"\n\
-				 # Command's module path without the type name.
-				 command_path = \"crate::yarn_command\"\n\
-				 # Command's type name. (do not include the path)
-				 command_type_name = \"MyYarnCommand\"\n\
-				 # If true, the program will overwrite files in the destination folder.
-				 allow_overwrite = true\n\
-				 # If true, the program will generate a Storage struct for you, using the variable declarations provided.
-				 # The name of the generated struct will be the same as the `storage_type_name`.
-				 generate_storage = true\n\
-				 # The OS(Operational System) destination folder for the generated files.
-				 destination_os_path = \"/src/nodes/quoting\"\n\
-				 # The Rust module path of the destination folder.
-				 destination_module_path = \"crate::dialogue::yarn_nodes\"\n\
-				 # The root folder of the Yarn scripts this program will attempt to parse.
-				 yarn_root_folder = \"../yarn_scripts\"\n\
-				 # The folders inside `yarn_root_folder` that will be excluded from parsing.
-				 exclude_yarn_folders = [\"test\", \"yarn.lock\", \"prototype\"]\n\
-				 ```"));
-	}
-	
-	fn ensure_not_empty(input: &DeserializableConfig) -> Result<Import> {
-		macro_rules! ensure_not_empty {
-			($field:expr, $field_name:expr, $example:expr) => {
-				if $field.is_empty() {
-					return Err(anyhow!(
-						"Config file is missing `{}` field.\n\n\
-						 Help: You can declare the field like this:\n\
-						 {} = {}", $field_name, $example, $field_name));
-				}
-			};
-		}
-		
-		ensure_not_empty!(input.storage_type_name, "storage_type_name", "\"MyVariablesStorage\"");
-		ensure_not_empty!(input.command_module_path, "command_module_path", "\"crate::yarn_commands\"");
-		ensure_not_empty!(input.command_type_name, "command_type_name", "\"MyYarnCommand\"");
-		ensure_not_empty!(input.destination_os_path, "destination_os_path", "\"/src/dialogues/nodes\"");
-		ensure_not_empty!(input.destination_module_path, "destination_module_path", "\"crate::dialogues::nodes\"");
-		ensure_not_empty!(input.yarn_root_folder, "yarn_root_folder", "\"../yarn_scripts\"");
-		
-		return match (input.storage_module_path.is_empty(), input.generate_storage) {
-			(true, true) => {
-				Ok(rust::import(format!("{}::default_storage", input.destination_module_path), &input.storage_type_name))
-			},
-			(false, false) => {
-				Ok(rust::import(&input.storage_module_path, &input.storage_type_name))
-			},
-			(true, false) => {
-				Err(anyhow!(
-					"Config file has `generate_storage` set to `false`, but `storage_module_path` is empty.\n\
-					 storage_module_path: `{}`\n\
-					 Help: If `generate_storage` is false, then `storage_path` should be the path to the storage type's module(without the type)."
-					, input.storage_module_path))
-			},
-			(false, true) => {
-				Err(anyhow!(
-					"Config file has `generate_storage` set to `true`, but `storage_module_path` is not empty.\n\
-					 storage_module_path: `{}`\n\
-					 Help: If `generate_storage` is true, then `storage_path` should be empty. \
-					 This is because this program will generate the storage struct for you and set it's path manually."
-					, input.storage_module_path))
-			},
+				 Help: Try running the program as an administrator.")
+			)?;
+
+	let decoded_file =
+		DecodeReaderBytesBuilder::new()
+			.encoding(None)
+			.bom_sniffing(true)
+			.build(file);
+
+	let mut buffer = String::new();
+	let mut reader =
+		std::io::BufReader::new(decoded_file);
+
+	reader.read_to_string(&mut buffer)
+	      .map_err(|err| anyhow!(
+			"Could not read `Config` file.\
+			 Path: `yarn_project.toml`\n\
+			 Error: `{err}`\n\n\
+			 Help: This program might need additional permissions to access this file.\n\
+			 Help: Try running the program as an administrator.")
+	      )?;
+
+	Ok(buffer)
+}
+
+fn deserialize(toml_input: String) -> Result<DeserializableConfig> {
+	return toml::from_str(&toml_input)
+		.map_err(|err| anyhow!(
+			"Could not parse `Config` file as `DeserializableConfig`.\n\
+			 Input: `{toml_input}`\n\
+			 Error: `{err}`\n\n\
+			 Ensure the file is in a valid format, example:\n\
+			 ```toml\n\
+			 # Storage variable's module path without the type name.
+			  (This should be empty if `generate_storage` is `true`)
+			 storage_path = \"crate::dialogues\"\n\
+			 # Storage variable's type name. (do not include the path)
+			 storage_type_name = \"MyVariablesStorage\"\n\
+			 # Command's module path without the type name.
+			 command_path = \"crate::yarn_command\"\n\
+			 # Command's type name. (do not include the path)
+			 command_type_name = \"MyYarnCommand\"\n\
+			 # The module path of the structs that implement `YarnVar`.
+			 vars_module_path = \"crate::dialogues::yarn_nodes::vars\"\n\
+			 # If true, the program will overwrite files in the destination folder.
+			 allow_overwrite = true\n\
+			 # If true, the program will generate a Storage struct for you, using the variable declarations provided.
+			 # The name of the generated struct will be the same as the `storage_type_name`.
+			 generate_storage = true\n\
+			 # The OS(Operational System) destination folder for the generated files.
+			 destination_os_path = \"/src/nodes/quoting\"\n\
+			 # The Rust module path of the destination folder.
+			 destination_module_path = \"crate::dialogue::yarn_nodes\"\n\
+			 # The root folder of the Yarn scripts this program will attempt to parse.
+			 yarn_root_folder = \"../yarn_scripts\"\n\
+			 # The folders inside `yarn_root_folder` that will be excluded from parsing.
+			 exclude_yarn_folders = [\"test\", \"yarn.lock\", \"prototype\"]\n\
+			 ```"));
+}
+
+fn ensure_not_empty(input: &DeserializableConfig) -> Result<(String, String)> {
+	macro_rules! ensure_not_empty {
+		($field:expr, $field_name:expr, $example:expr) => {
+			if $field.is_empty() {
+				return Err(anyhow!(
+					"Config file is missing `{}` field.\n\n\
+					 Help: You can declare the field like this:\n\
+					 {} = {}", $field_name, $example, $field_name));
+			}
 		};
 	}
 
-	pub fn parse_file(path: &str) -> Result<YarnConfig> {
-		let toml_input = 
-			Self::read_file(path)?;
-		let toml =
-			Self::deserialize(toml_input)?;
+	ensure_not_empty!(input.storage_type_name, "storage_type_name", "\"MyVariablesStorage\"");
+	ensure_not_empty!(input.command_module_path, "command_module_path", "\"crate::yarn_commands\"");
+	ensure_not_empty!(input.command_type_name, "command_type_name", "\"MyYarnCommand\"");
+	ensure_not_empty!(input.destination_os_path, "destination_os_path", "\"/src/dialogues/nodes\"");
+	ensure_not_empty!(input.destination_module_path, "destination_module_path", "\"crate::dialogues::nodes\"");
+	ensure_not_empty!(input.yarn_root_folder, "yarn_root_folder", "\"../yarn_scripts\"");
 
-		let storage_import = 
-			Self::ensure_not_empty(&toml)?;
-		let storage_direct =
-			storage_import.clone().direct();
-		let storage_qualified = 
-			storage_import.qualified();
+	return match (input.storage_module_path.is_empty() || input.vars_module_path.is_empty(), input.generate_storage) {
+		(true, true) => {
+			let storage_qualified = 
+				format!("{mod_path}::default_storage::{type_name}", 
+					mod_path = input.destination_module_path, type_name = input.storage_type_name);
+			
+			let vars_qualified = 
+				format!("{mod_path}::default_storage::vars",
+					mod_path = input.destination_module_path);
+			
+			Ok((storage_qualified, vars_qualified))
+		},
+		(false, false) => {
+			let storage_qualified =
+				format!("{mod_path}::{type_name}",
+					mod_path = input.storage_module_path, type_name = input.storage_type_name);
+			
+			let vars_qualified =
+				format!("{mod_path}",
+					mod_path = input.vars_module_path);
+			
+			Ok((storage_qualified, vars_qualified))
+		},
+		(true, false) => {
+			Err(anyhow!(
+				"Config file has `generate_storage` set to `false`, but either `storage_module_path` or `vars_module_path` is empty.\n\
+				 Help: If `generate_storage` is false. Then:\n\
+				  - `storage_path` should be the path to the storage type's module(without the type)\
+				  - `vars_module_path` should be the path to the module that contains the structs that implement `YarnVar`."))
+		},
+		(false, true) => {
+			Err(anyhow!(
+				"Config file has `generate_storage` set to `true`, but either `storage_module_path` or `vars_module_path` is not empty.\n\
+				 Help: If `generate_storage` is true, then `storage_module_path` and `vars_module_path` should both be empty. \
+				 This is because this program will generate the storage struct and variables for you, then set their paths manually."))
+		},
+	};
+}
+
+impl YarnConfig {
+	pub fn parse_file() -> Result<YarnConfig> {
+		let toml_input = read_file()?;
+		let toml = deserialize(toml_input)?;
+		
+		let (storage_qualified, vars_qualified) =
+			ensure_not_empty(&toml)?;
 		
 		let command_qualified =
-			rust::import(&toml.command_module_path, &toml.command_type_name).qualified();
-		let command_direct =
-			rust::import(toml.command_module_path, toml.command_type_name).direct();
+			format!("{mod_path}::{type_name}", 
+				mod_path = &toml.command_module_path, type_name = &toml.command_type_name);
 		
 		let shared_qualified =
-			rust::import(toml.destination_module_path, "shared_internal");
+			format!("{mod_path}::shared_internal",
+				mod_path = toml.destination_module_path);
 		
 		let destination_os_path =
 			PathBuf::from_str(&toml.destination_os_path)
@@ -162,7 +191,7 @@ impl YarnConfig {
 					"Could not parse `destination_os_path` into `PathBuf`.\n\
 					 Path: `{}`\n\
 					 Error: {err}\n\n\
-					 Help: Ensure the `destination_os_path` is a valid OS file-system path. (like `/src/dialogues/nodes/`)"
+					 Help: Ensure the `destination_os_path` is a valid OS file-system path. (like `src/dialogues/nodes/`)"
 					, toml.destination_os_path)
 				)?;
 		
@@ -181,7 +210,7 @@ impl YarnConfig {
 					"Could not parse `yarn_root_folder` into `PathBuf`.\n\
 					 Path: `{}`\n\
 					 Error: `{err}`\n\n\
-					 Help: Ensure the `yarn_root_folder` is in the format \"../yarn_scripts\"."
+					 Help: Ensure the `yarn_root_folder` is a valid OS file-system path. (like \"/../yarn_scripts\".)"
 					, toml.yarn_root_folder)
 				)?;
 
@@ -189,21 +218,16 @@ impl YarnConfig {
 			toml.exclude_yarn_folders
 			    .iter()
 			    .map(|folder| 
-					PathBuf::from_str(folder)
-						.map_err(|err| anyhow!(
-							"Could not parse a folder in `exclude_yarn_folders` into `PathBuf`.\n\
-							 Path: `{folder}`\n\
-							 Error: `{err}`\n\n\
-							 Help: Ensure the folders in `exclude_yarn_folders` have paths in relation to `yarn_root_folder`."
-						)))
-			    .try_collect()?;
+				    yarn_root_folder.join(folder))
+			    .collect();
 		
 		Ok(YarnConfig {
 			storage_qualified,
-			storage_direct,
+			storage_direct: toml.storage_type_name,
 			command_qualified,
-			command_direct,
+			command_direct: toml.command_type_name,
 			shared_qualified,
+			vars_qualified,
 			allow_overwrite: toml.allow_overwrite,
 			generate_storage: toml.generate_storage,
 			destination_os_path,

@@ -4,7 +4,7 @@
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
-use crate::line::YarnYield;
+use crate::instruction::YarnYield;
 use crate::nodes::ch01_awakening_command::Ch01_Awakening_Command;
 use crate::shared_internal::{Storage, YarnCommand};
 

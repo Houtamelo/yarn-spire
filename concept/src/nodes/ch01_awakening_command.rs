@@ -4,7 +4,7 @@ use houtamelo_utils::own;
 use serde::{Deserialize, Serialize};
 
 use crate::command_line::CommandLineTrait;
-use crate::line::YarnYield;
+use crate::instruction::YarnYield;
 use crate::shared_internal::{Ch01_Awakening, Ch01_Awakening_Line, Ch01_First_Fight, ethel_awake, ethel_stamina, mouth_taste, NodeTitle, NodeTitleTrait, Storage, YarnCommand};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

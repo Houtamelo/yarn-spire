@@ -2,11 +2,13 @@
 
 use std::borrow::Cow;
 
-use crate::line::YarnYield;
+use serde::{Deserialize, Serialize};
+
+use crate::instruction::YarnYield;
 use crate::options::OptionLineTrait;
 use crate::shared_internal::{Ch01_Awakening_Line, ethel_awake, Storage};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Ch01_Awakening_OptionLine {
 	main_12,
 	main_13,

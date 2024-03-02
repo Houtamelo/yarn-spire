@@ -1,6 +1,7 @@
+use crate::expressions::yarn_expr::YarnExpr;
 use crate::Indent;
 use crate::quoting::quotable_types::enums::{LineEnum, OptionLineEnum};
-use crate::quoting::quotable_types::line_ids::{IDCustomCommand, IDFlatLine, IDFlow, IDOptionLine, IDOptionsFork, IDSpeech, InstructionKind};
+use crate::quoting::quotable_types::line_ids::{BuiltInCommand, IDCustomCommand, IDFlatLine, IDFlow, IDOptionLine, IDOptionsFork, IDSpeech, InstructionKind};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IDScope {
@@ -257,5 +258,131 @@ impl IDScope {
 				}
 			}
 		}
+	}
+	
+	pub fn iter_exprs(&self) -> impl Iterator<Item = &YarnExpr> {
+		macro_rules! yield_items {
+		    ($iter:expr) => {
+			    for _item in $iter {
+				    yield _item;
+			    }
+		    };
+		}
+		
+		std::iter::from_coroutine(move || {
+			for flow in &self.flows {
+				match flow {
+					IDFlow::Flat(flat_lines) => {
+						for line in flat_lines {
+							match line {
+								IDFlatLine::Speech(speech) => {
+									for arg in &speech.text.1 {
+										yield_items!(arg.iter_exprs());
+									}
+								},
+								IDFlatLine::CustomCommand(custom_command) => {
+									for arg in &custom_command.args {
+										yield_items!(arg.iter_exprs());
+									}
+								},
+								IDFlatLine::BuiltInCommand(built_in_command) => {
+									if let BuiltInCommand::Set { value, .. } = built_in_command {
+										yield_items!(value.iter_exprs());
+									}
+								},
+							}
+						}
+					},
+					IDFlow::OptionsFork(options_fork) => {
+						for (line, scope_option) in options_fork.options.iter() {
+							for arg in &line.text.1 {
+								yield_items!(arg.iter_exprs());
+							}
+
+							if let Some(if_condition) = &line.if_condition {
+								yield_items!(if_condition.iter_exprs());
+							}
+
+							if let Some(scope_inside_option) = scope_option {
+								yield_items!(Box::new(scope_inside_option.iter_exprs()));
+							}
+						}
+					}
+					IDFlow::IfBranch(if_branch) => {
+						yield_items!(if_branch.if_.0.condition.iter_exprs());
+
+						if let Some(if_scope) = &if_branch.if_.1 {
+							yield_items!(Box::new(if_scope.iter_exprs()));
+						}
+
+						for (else_if, else_if_scope_option) in &if_branch.else_ifs {
+							yield_items!(else_if.condition.iter_exprs());
+
+							if let Some(else_if_scope) = else_if_scope_option {
+								yield_items!(Box::new(else_if_scope.iter_exprs()));
+							}
+						}
+					}
+				}
+			}
+		})
+	}
+	
+	pub fn iter_flows_recursive(&self) -> impl Iterator<Item = &IDFlow> {
+		std::iter::from_coroutine(move || {
+			for flow in &self.flows {
+				yield flow;
+				
+				match flow {
+					IDFlow::Flat(_) => {}
+					IDFlow::OptionsFork(options_fork) => {
+						for (_, maybe_scope) in options_fork.options.iter() {
+							if let Some(scope) = maybe_scope {
+								let mut scope_routine = Box::new(scope.iter_flows_recursive());
+								while let Some(_flow) = scope_routine.next() {
+									yield _flow;
+								}
+							}
+						}
+					}
+					IDFlow::IfBranch(if_branch) => {
+						if let (_, Some(scope)) = &if_branch.if_ {
+							let mut scope_routine = Box::new(scope.iter_flows_recursive());
+							while let Some(_flow) = scope_routine.next() {
+								yield _flow;
+							}
+						}
+						
+						for (_, maybe_scope) in &if_branch.else_ifs {
+							if let Some(scope) = maybe_scope {
+								let mut scope_routine = Box::new(scope.iter_flows_recursive());
+								while let Some(_flow) = scope_routine.next() {
+									yield _flow;
+								}
+							}
+						}
+						
+						if let Some((_, Some(scope))) = &if_branch.else_ {
+							let mut scope_routine = Box::new(scope.iter_flows_recursive());
+							while let Some(_flow) = scope_routine.next() {
+								yield _flow;
+							}
+						}
+					}
+				}
+			}
+		})
+	}
+	
+	pub fn iter_flat_lines(&self) -> impl Iterator<Item = &IDFlatLine> {
+		std::iter::from_coroutine(move || {
+			for flow in self.iter_flows_recursive() {
+				if let IDFlow::Flat(flat_lines) = flow {
+					for _line in flat_lines {
+						yield _line;
+					}
+				}
+			}
+		})
 	}
 }

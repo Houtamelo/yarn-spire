@@ -2,6 +2,8 @@
 pub mod yarn_lit;
 pub mod yarn_ops;
 pub mod yarn_expr;
+pub mod built_in_calls;
+pub mod declaration_ty;
 mod custom_parser;
 
 use custom_parser::CustomExpr;
@@ -12,7 +14,7 @@ use yarn_ops::{YarnBinaryOp, YarnUnaryOp};
 use anyhow::{Result, anyhow};
 use quote::ToTokens;
 use syn::Stmt;
-use crate::expressions::yarn_expr::DeclarationTy;
+use declaration_ty::DeclarationTy;
 
 type SynExpr = syn::Expr;
 type SynError = syn::Error;
@@ -28,13 +30,9 @@ pub enum ParseErrorType {
 }
 
 pub fn parse_yarn_expr(input: &str) -> Result<YarnExpr> {
-	syn::parse_str::<CustomExpr>(input)
+	CustomExpr::parse_str(input)
 		.map(|custom| custom.0)
-		.map_err(|err| anyhow!(
-			"Could not parse input: {input}\n\
-			 Syn Error: {err}"))
-		.and_then(|expr|
-			parse_from_syn_expr(expr))
+		.and_then(parse_from_syn_expr)
 }
 
 fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
@@ -50,17 +48,16 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 			})
 		},
 		SynExpr::Call(call) => {
-			let func_name = ToTokens::into_token_stream(call.func).to_string();
-			let args =
+			let func_name =
+				ToTokens::into_token_stream(call.func).to_string();
+
+			let args: Vec<YarnExpr> =
 				call.args
 				    .into_iter()
 				    .map(parse_from_syn_expr)
 				    .try_collect()?;
-
-			Ok(YarnExpr::CustomFunctionCall {
-				func_name,
-				args,
-			})
+			
+			YarnExpr::parse_call(func_name, args)
 		},
 		SynExpr::Group(group) => {
 			let expr = parse_from_syn_expr(*group.expr)?;

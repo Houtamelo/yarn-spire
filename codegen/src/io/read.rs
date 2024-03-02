@@ -2,12 +2,16 @@ use std::path::PathBuf;
 use anyhow::{anyhow, Result};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use encoding_rs_io::DecodeReaderBytesBuilder;
 use houtamelo_utils::prelude::None;
 use trim_in_place::TrimInPlace;
 use crate::config::YarnConfig;
 use crate::UnparsedLine;
 
-type YarnFile = Vec<UnparsedLine>;
+pub struct YarnFile {
+	pub path: PathBuf,
+	pub lines: Vec<UnparsedLine>,
+}
 
 fn find_yarn_files(relative_path: &str,
                    exclude: &[PathBuf])
@@ -46,23 +50,28 @@ fn find_yarn_files(relative_path: &str,
 	return Ok(files);
 }
 
-fn read_lines(file: File) -> Result<YarnFile> {
-	let reader = BufReader::new(file);
+fn read_lines(file: File, path: PathBuf) -> Result<YarnFile> {
+	let decoded_file = 
+		DecodeReaderBytesBuilder::new()
+			.encoding(None)
+			.bom_sniffing(true)
+			.build(file);
+	
+	let reader = 
+		BufReader::new(decoded_file);
 
 	let source_lines: Vec<(usize, String)> =
-		reader
-			.lines()
-			.enumerate()
-			.map(|(line_number, result)|
-				result
-					.map(|text| (line_number, text))
-					.map_err(|err| anyhow!(
-						"Could not read line from file.\n\
-				         Error: {err}"
-					))
-			).try_collect()?;
+		reader.lines()
+		      .enumerate()
+		      .map(|(line_number, result)|
+			      Ok((line_number + 1, result?)))
+		      .try_collect()
+			  .map_err(|err: anyhow::Error| anyhow!(
+				  "Could not read line from file.\n\
+		 		   Error: {err}")
+			  )?;
 	
-	let unparsed_lines =
+	let lines =
 		source_lines
 			.into_iter()
 			.filter_map(|(line_number, mut text)| {
@@ -80,27 +89,28 @@ fn read_lines(file: File) -> Result<YarnFile> {
 				}
 			}).collect();
 	
-	return Ok(unparsed_lines);
+	Ok(YarnFile {
+		path,
+		lines,
+	})
 }
 
 fn read_files(paths: Vec<PathBuf>) -> Result<Vec<YarnFile>> {
 	paths.into_iter()
-	     .map(|path|
-			File::open(&path)
-				.map_err(|err| anyhow!(
-					 "Could not open file at path: {path:?}\n\
-				      Error: {err}"
-				 )))
-	     .try_fold(Vec::new(), |mut sum, file| {
-			let file = file?;
-			let lines = read_lines(file)?;
+	     .map(|path| {
+		     let file =
+			     File::open(&path)
+				     .map_err(|err| anyhow!(
+						 "Could not open file at path: {path:?}\n\
+					      Error: {err}")
+				     )?;
 
-			sum.push(lines);
-			Ok(sum)
-		})
+		     let lines = read_lines(file, path)?;
+		     Ok(lines)
+	     }).try_collect()
 }
 
-pub fn find_and_read_yarn_files(cfg: &YarnConfig) -> Result<Vec<Vec<UnparsedLine>>> {
+pub fn find_and_read_yarn_files(cfg: &YarnConfig) -> Result<Vec<YarnFile>> {
 	let yarn_root_path =
 		cfg.yarn_root_folder
 		   .to_str()

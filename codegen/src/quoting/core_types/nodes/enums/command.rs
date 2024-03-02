@@ -2,7 +2,7 @@ use genco::prelude::quoted;
 use genco::prelude::rust::Tokens;
 use genco::quote;
 use crate::config::YarnConfig;
-use crate::quoting::helper::SeparatedItems;
+use crate::quoting::util::SeparatedItems;
 use crate::quoting::quotable_types::line_ids::{IDCustomCommand, IDFlatLine, IDFlow};
 use crate::quoting::quotable_types::enums::LineEnum;
 use crate::quoting::quotable_types::enums;
@@ -31,7 +31,7 @@ fn tokens_enum(commands: &[(&IDCustomCommand, LineEnum)],
 				line_enum.variant_name());
 
 	quote! {
-		#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+		#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 		pub enum $enum_name {
 			$(SeparatedItems(enum_variants, ",\n"))
 		}
@@ -182,9 +182,9 @@ fn tokens_trait_impl<'a>(cfg: &YarnConfig,
 	quote! {
 		impl CommandLineTrait for $enum_name {
 			fn next(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield {
-				return match self {
+				match self {
 					$(SeparatedItems(next_fns, "\n"))
-				};
+				}
 			}
 			
 			fn line_id(&self) -> &'static str {
@@ -205,22 +205,26 @@ fn tokens_trait_impl<'a>(cfg: &YarnConfig,
 pub fn all_tokens(cfg: &YarnConfig,
                   node: &IDNode,
                   lines_map: &LinesMap)
-                  -> Tokens {
+                  -> Option<Tokens> {
+	if lines_map.commands.is_empty() {
+		return None;
+	}
+	
 	let enum_name = 
-		&enums::enum_type_command(&node.metadata.title);
+		enums::enum_type_command(&node.metadata.title);
 
 	let tokens_imports = 
 		tokens_imports(cfg);
 	let tokens_enum = 
-		tokens_enum(&lines_map.commands, enum_name);
+		tokens_enum(&lines_map.commands, &enum_name);
 	let tokens_trait_impl = 
-		tokens_trait_impl(cfg, &lines_map.commands, enum_name, node);
+		tokens_trait_impl(cfg, &lines_map.commands, &enum_name, node);
 
-	quote! {
+	Some(quote! {
 		$tokens_imports
 		
 		$tokens_enum
 		
 		$tokens_trait_impl
-	}
+	})
 }

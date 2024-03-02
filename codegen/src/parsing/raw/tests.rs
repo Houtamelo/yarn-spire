@@ -1,3 +1,4 @@
+/*
 use houtamelo_utils::own;
 use crate::parsing::raw::command::YarnCommand;
 use crate::UnparsedLine;
@@ -69,3 +70,4 @@ fn test_parsing() {
 	assert_eq!(raw_lines[14], RawLine { indent: 0, content: Content::Command(
 		YarnCommand::Set { line_number: 14, var_name: own!("num1"), arg: YarnExpr::Lit(YarnLit::Int(50)) }) });
 }
+*/

@@ -1,7 +1,5 @@
-#![allow(clippy::needless_return)]
-
 pub mod options;
-pub mod line;
+pub mod instruction;
 pub mod runtime;
 pub mod title;
 pub mod storage;
@@ -9,6 +7,7 @@ pub mod nodes;
 pub mod var_trait;
 pub mod speech;
 pub mod command_line;
+mod built_in_functions;
 
 pub type PlayerDecision = usize;
 pub type YieldCounter = usize;
@@ -20,7 +19,7 @@ pub(crate) mod shared_internal {
 		YieldCounter,
 	};
 	pub use super::command_line::*;
-	pub use super::line::*;
+	pub use super::instruction::*;
 	pub use super::nodes::*;
 	pub use super::nodes::ch01_awakening::*;
 	pub use super::options::*;
@@ -28,5 +27,7 @@ pub(crate) mod shared_internal {
 	pub use super::speech::*;
 	pub use super::storage::*;
 	pub use super::title::*;
+	pub use super::var_trait::*;
 }
+
 

@@ -1,7 +1,7 @@
 use genco::prelude::rust::Tokens;
 use genco::quote;
 use crate::config::YarnConfig;
-use crate::quoting::helper::SeparatedItems;
+use crate::quoting::util::SeparatedItems;
 use crate::quoting::quotable_types::line_ids::IDOptionsFork;
 use crate::quoting::quotable_types::enums::{LineEnum, OptionLineEnum};
 use crate::quoting::quotable_types::enums;
@@ -28,7 +28,7 @@ fn tokens_enum(forks: &[(&IDOptionsFork, LineEnum)],
 				line_enum.variant_name());
 
 	quote! {
-		#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+		#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 		pub enum $enum_name {
 			$(SeparatedItems(enum_variants, ",\n"))
 		}
@@ -94,22 +94,26 @@ fn tokens_trait_impl<'a>(forks: &[(&IDOptionsFork, LineEnum)],
 pub fn all_tokens(cfg: &YarnConfig,
                   node: &IDNode,
                   lines_map: &LinesMap)
-                  -> Tokens {
+                  -> Option<Tokens> {
+	if lines_map.options_forks.is_empty() {
+		return None;
+	}
+	
 	let enum_name = 
-		&enums::enum_type_speech(&node.metadata.title);
+		enums::enum_type_options_fork(&node.metadata.title);
 
 	let tokens_imports =
 		tokens_imports(cfg);
 	let tokens_enum = 
-		tokens_enum(&lines_map.options_forks, enum_name);
+		tokens_enum(&lines_map.options_forks, &enum_name);
 	let tokens_trait_impl = 
-		tokens_trait_impl(&lines_map.options_forks, node, enum_name);
+		tokens_trait_impl(&lines_map.options_forks, node, &enum_name);
 
-	quote! {
+	Some(quote! {
 		$tokens_imports
 		
 		$tokens_enum
 		
 		$tokens_trait_impl
-	}
+	})
 }

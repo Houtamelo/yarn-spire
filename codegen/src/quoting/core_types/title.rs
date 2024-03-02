@@ -1,7 +1,7 @@
 use genco::lang::rust::Tokens;
 use genco::quote;
 use crate::config::YarnConfig;
-use crate::quoting::helper::{Comments, SeparatedItems};
+use crate::quoting::util::{Comments, SeparatedItems};
 use crate::quoting::quotable_types::node::IDNode;
 
 fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
@@ -16,8 +16,8 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 		use $(&cfg.shared_qualified)::*;
 		
 		$(Comments([
-			r#"The original YarnSpinner's 
-			[tracking setting](https://docs.yarnspinner.dev/getting-started/writing-in-yarn/tags-metadata#the-tracking-header)."#]))
+			"The original YarnSpinner's \n\
+			[tracking setting](https://docs.yarnspinner.dev/getting-started/writing-in-yarn/tags-metadata#the-tracking-header)."]))
 		#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 		pub enum TrackingSetting {
 			Always,

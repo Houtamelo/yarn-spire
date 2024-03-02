@@ -11,6 +11,12 @@ use crate::parsing::raw::{Content, RawLine};
 use crate::parsing::raw::speech::Speech;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FlatLine {
+	Speech(Speech),
+	Command(YarnCommand),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Flow {
 	Flat(Vec<FlatLine>),
 	OptionsFork(OptionsFork),
@@ -35,12 +41,6 @@ impl YarnScope {
 	pub fn flows(&self) -> &[Flow] {
 		return &self.flows;
 	}
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FlatLine {
-	Speech(Speech),
-	Command(YarnCommand),
 }
 
 fn peek_next_line_indent(lines_iter: &mut Peekable<IntoIter<RawLine>>)

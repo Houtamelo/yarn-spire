@@ -3,7 +3,11 @@
 use std::iter::Peekable;
 use std::str::Chars;
 use anyhow::{Result, anyhow};
+use genco::lang::Rust;
+use genco::prelude::{FormatInto, quoted};
+use genco::{quote_in, Tokens};
 use houtamelo_utils::prelude::None;
+use trim_in_place::TrimInPlace;
 use expressions::parse_yarn_expr;
 use crate::{expressions, LineNumber};
 use crate::expressions::yarn_expr::YarnExpr;
@@ -14,6 +18,18 @@ use crate::parsing::raw::{ParseRawYarn, Content};
 pub enum Speaker {
 	Literal(String),
 	Variable(String),
+}
+
+
+impl FormatInto<Rust> for &Speaker {
+	fn format_into(self, tokens: &mut Tokens<Rust>) {
+		match self {
+			Speaker::Literal(literal) =>
+				quote_in!(*tokens => $(quoted(literal))),
+			Speaker::Variable(var_name) =>
+				quote_in!(*tokens => storage.get_var::<$var_name>()),
+		}
+	}
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,7 +122,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 										 \tArguments: `{args:?}`\n")
 									)?;
 
-							let YarnExpr::VarGet(speaker_var_name) = expr
+							let YarnExpr::GetVar(speaker_var_name) = expr
 								else {
 									return Err(anyhow!(
 										"Invalid `speaker variable` argument.\n\
@@ -161,8 +177,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 									 \tArguments: `{args:?}`\n\
 									 \n\
 									 Help: the closing delimiter `{un_nest}` does not match the most-recent opening delimiter `{nest}`.\n\
-									 Help: if you want to use '{{', '}}' inside a string literal, escape it with a backslash (`\\`).")
-								);
+									 Help: if you want to use '{{', '}}' inside a string literal, escape it with a backslash (`\\`)."));
 							}
 						} else if un_nest == '}' {
 							sum.push('}');
@@ -177,8 +192,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 								 \tLiteral: `{literal}`\n\
 								 \tArguments: `{args:?}`\n\
 								 \n\
-								 Help: if you want to use '{{', '}}' inside a string literal, escape it with a backslash (`\\`).")
-							);
+								 Help: if you want to use '{{', '}}' inside a string literal, escape it with a backslash (`\\`)."));
 						},
 					other => {
 						*previous_char = other;
@@ -224,8 +238,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 					 Built so far: \n\
 					 \tLiteral: `{literal}`\n\
 					 \tArguments: `{args:?}`\n\n\
-					 Help: The escape character(`\\`) means nothing if there's no character after it.")
-				);
+					 Help: The escape character(`\\`) means nothing if there's no character after it."));
 			}
 		},
 		State::Arg { char_state: _char_state, previous_char: _previous_char,
@@ -239,13 +252,21 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 				 \tArguments: `{args:?}`\n\n\
 				 Help: The argument `{sum}` is not closed.\n\
 				 Help: For every opening delimiter(`(`, `{{`, `[`), there must be a matching closing delimiter(`)`, `}}`, `]`).\n\
-				 Help: If you want to use '{{', '}}' inside a string literal, escape it with a backslash (`\\`).")
-			);
+				 Help: If you want to use '{{', '}}' inside a string literal, escape it with a backslash (`\\`)."));
 		},
 	}
 
 	let args_expr =
-		build_args(args.clone(), &literal, &speaker, &metadata)?;
+		build_args(args.clone())
+			.map_err(|err| anyhow!(
+				"Could not parse argument as `YarnExpr`.\n\
+				 Error: `{err:?}`\n\
+				 Speaker: `{speaker:?}`\n\
+		         Literal: `{literal}`\n\
+		         Metadata: `{metadata:?}`")
+			)?;
+	
+	literal.trim_in_place();
 
 	if literal.is_empty() 
 		&& args_expr.is_empty() {
@@ -253,8 +274,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 			"Both literal and arguments are empty.\n\
 			 Built so far: \n\
 			 \tLiteral: `{literal}`\n\
-			 \tArguments: `{args:?}`\n"
-		));
+			 \tArguments: `{args:?}`\n"));
 	}
 	
 	let Some(after_hash) = metadata
@@ -318,24 +338,16 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 	};
 }
 
-// Reference arguments are just for error messages.
-fn build_args(unparsed_args: Vec<String>, literal: &String,
-              speaker: &Option<Speaker>, metadata: &Option<String>)
-              -> Result<Vec<YarnExpr>> {
+fn build_args(unparsed_args: Vec<String>) -> Result<Vec<YarnExpr>> {
 	let exprs =
 		unparsed_args
 			.iter()
 			.map(|unparsed_str|
 				parse_yarn_expr(&unparsed_str)
 					.map_err(|err| anyhow!(
-						"Could not parse argument as `YarnExpr`.\n\
-				         Error: `{err:?}`\n\
-				         All Unparsed Arguments: `{unparsed_args:?}`\n\
-						 Speaker: `{speaker:?}`\n\
-				         Literal: `{literal}`\n\
-				         Metadata: `{metadata:?}`"
-					))
-			).collect::<Result<Vec<YarnExpr>>>()?;
+						"{err:?}\n\
+				         All Unparsed Arguments: `{unparsed_args:?}`")))
+			.try_collect()?;
 
 	return Ok(exprs);
 }

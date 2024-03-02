@@ -4,7 +4,7 @@ use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
-use crate::line::YarnYield;
+use crate::instruction::YarnYield;
 use crate::shared_internal::{Ch01_Awakening, Ch01_Awakening_Line, mouth_taste, narrator, NodeTitle, SpeechTrait, Storage};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

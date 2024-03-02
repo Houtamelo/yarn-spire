@@ -44,6 +44,12 @@ pub struct RawLine {
 	pub content: Content,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RawNode {
+	pub metadata: NodeMetadata,
+	pub lines: Vec<RawLine>,
+}
+
 impl RawLine {
 	pub fn number(&self) -> LineNumber {
 		return match &self.content {
@@ -57,12 +63,6 @@ impl RawLine {
 			Content::EndIf(end_if_struct) => end_if_struct.line_number,
 		};
 	}
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RawNode {
-	pub metadata: NodeMetadata,
-	pub lines: Vec<RawLine>,
 }
 
 fn parse_line(line_number: LineNumber, indent: Indent, line: &impl AsRef<str>)
@@ -159,8 +159,8 @@ pub fn parse_raw_nodes(mut source_lines: Vec<UnparsedLine>) -> Result<(Vec<RawNo
 							}
 						}).try_collect()?;
 
-				Ok(RawNode { metadata, lines })
-			}).collect::<Result<Vec<RawNode>>>()?;
+				Result::<_>::Ok(RawNode { metadata, lines })
+			}).try_collect()?;
 	
 	return Ok((raw_nodes, var_declarations));
 }

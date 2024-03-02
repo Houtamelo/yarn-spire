@@ -1,5 +1,8 @@
 use crate::expressions::SynLit;
 use anyhow::{Result, anyhow};
+use genco::lang::Rust;
+use genco::prelude::{FormatInto, quoted};
+use genco::{quote_in, Tokens};
 
 #[derive(Debug, Clone)]
 pub enum YarnLit {
@@ -51,6 +54,32 @@ impl PartialEq for YarnLit {
 			(YarnLit::Bool(b1), YarnLit::Bool(b2)) => b1 == b2,
 			_ => false,
 		};
+	}
+}
+
+impl FormatInto<Rust> for &YarnLit {
+	fn format_into(self, tokens: &mut Tokens<Rust>) {
+		match self {
+			YarnLit::Int(i) => {
+				quote_in!(*tokens => $(*i));
+			},
+			YarnLit::Float(f) => {
+				quote_in!(*tokens => $(f.to_string()));
+			},
+			YarnLit::Str(s) => {
+				quote_in!(*tokens => $(quoted(s)));
+			},
+			YarnLit::Bool(b) => {
+				match b {
+					true => {
+						quote_in!(*tokens => true);
+					}
+					false => {
+						quote_in!(*tokens => false);
+					}
+				}
+			}
+		}
 	}
 }
 

@@ -13,12 +13,12 @@ use crate::shared_internal::ch01_awakening_option_line::Ch01_Awakening_OptionLin
 use crate::shared_internal::ch01_awakening_options_fork::Ch01_Awakening_OptionsFork;
 
 #[enum_dispatch(OptionsFork)]
-pub(crate) trait OptionsForkTrait {
+pub trait OptionsForkTrait {
 	fn options(&self) -> CountOrMore<1, OptionLine>;
 }
 
 #[enum_dispatch(OptionLine)]
-pub(crate) trait OptionLineTrait {
+pub trait OptionLineTrait {
 	fn next(&self, storage: &mut Storage) -> YarnYield;
 
 	/// The line's unique identifier, for more, 
@@ -82,7 +82,7 @@ pub enum OptionsFork {
 }
 
 #[enum_dispatch]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum OptionLine {
 	Ch01_Awakening_OptionLine,
 }

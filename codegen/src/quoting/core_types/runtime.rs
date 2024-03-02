@@ -58,7 +58,7 @@ pub fn all_tokens(cfg: &YarnConfig) -> Tokens {
 						self.yield_counter += 1;
 					},
 					YarnYield::Finished => {
-						self.current_storage.increment_visited(self.current_node);
+						self.current_storage.increment_visited(&self.current_node);
 					},
 				}
 			}

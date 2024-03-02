@@ -3,10 +3,11 @@
 
 use std::collections::HashMap;
 
+use rand::{Rng, SeedableRng};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use serde::{Deserialize, Serialize};
 
 use crate::shared_internal::*;
-use crate::var_trait::YarnVar;
 
 macro_rules! default_storage {
     (pub struct $storage_name: ident {
@@ -22,6 +23,7 @@ macro_rules! default_storage {
 	    
 	    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 		pub struct $storage_name {
+		    rng: Xoshiro256PlusPlus,
 			visited_counters: HashMap<NodeTitle, usize>,
 		    vars: StorageVars,
 		}
@@ -29,6 +31,7 @@ macro_rules! default_storage {
 		impl $storage_name {
 		    pub fn new() -> Self {
 			    Self {
+				    rng: Xoshiro256PlusPlus::from_entropy(),
 				    visited_counters: HashMap::new(),
 				    vars: StorageVars {
 					    $($name: <$var_ty>::from($default)),*
@@ -74,24 +77,39 @@ macro_rules! default_storage {
 			pub fn visited_count(&self, node_title: &NodeTitle) -> usize {
 				return *self.visited_counters.get(node_title).unwrap_or(&0);
 			}
+		    
+		    fn random(&mut self) -> f64 {
+				return self.rng.gen_range(0.0..1.0);
+			}
+			
+			fn random_range(&mut self, lower: f64, upper: f64) -> f64 {
+				return self.rng.gen_range(lower..upper);
+			}
+			
+			fn dice(&mut self, sides: usize) -> usize {
+				return self.rng.gen_range(1..=sides);
+			}
 		}
 	    
-	    
-	    $(
-		    pub struct $name;
-			
-			impl YarnVar for $name {
-				type Return = $var_ty;
-			
-				fn get(storage: &$storage_name) -> Self::Return {
-					return storage.vars.$name.clone();
+	    pub mod vars {
+		    pub use super::*;
+		    
+		    $(
+			    pub struct $name;
+				
+				impl YarnVar for $name {
+					type Return = $var_ty;
+				
+					fn get(storage: &$storage_name) -> Self::Return {
+						return storage.vars.$name.clone();
+					}
+				
+					fn set(storage: &mut $storage_name, value: Self::Return) {
+						storage.vars.$name = value;
+					}
 				}
-			
-				fn set(storage: &mut $storage_name, value: Self::Return) {
-					storage.vars.$name = value;
-				}
-			}
-	    )*
+		    )*
+		}
     };
 }
 

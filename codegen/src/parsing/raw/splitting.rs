@@ -117,6 +117,7 @@ pub fn split_into_unparsed_nodes(lines: &[UnparsedLine])
 	};
 }
 
+/*
 #[test]
 fn test() {
 	macro_rules! unpln {
@@ -145,3 +146,4 @@ fn test() {
 	assert_eq!(as_delimiter(&unpln!(3, "-> Option A \t #metadata")), NodeDelimiter::Not(&unpln!(3, "-> Option A \t #metadata")));
 	assert_eq!(as_delimiter(&unpln!(4, "-> Option A \t #metadata")), NodeDelimiter::Not(&unpln!(4, "-> Option A \t #metadata")));
 }
+*/

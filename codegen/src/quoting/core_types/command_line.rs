@@ -1,9 +1,9 @@
 use genco::quote;
 use genco::lang::rust::Tokens;
 use crate::config::YarnConfig;
-use crate::quoting::helper::SeparatedItems;
+use crate::quoting::util::SeparatedItems;
 use crate::quoting::quotable_types::enums::SUFFIX_COMMAND;
-use crate::quoting::quotable_types::node::IDNode;
+use crate::quoting::quotable_types::node::{IDNode, LinesMap};
 
 fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 	quote! {
@@ -18,22 +18,28 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 		#[enum_dispatch(CommandLine)]
 		pub trait CommandLineTrait {
 			fn next(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
+			fn line_id(&self) -> &'static str;
 			fn command(&self, storage: &$(&cfg.storage_direct)) -> $(&cfg.command_direct);
 		}
 	}
 }
 
-fn tokens_enum(nodes: &[IDNode]) -> Tokens {
+fn tokens_enum(nodes_mapped: &[(&IDNode, LinesMap)]) -> Tokens {
 	let titles =
-		nodes.iter()
-		     .map(|node| {
-			     let title = node.metadata.title.clone() + SUFFIX_COMMAND;
-			     quote! { $(title) }
-		     });
+		nodes_mapped
+			.iter()
+			.filter_map(|(node, lines_map)| {
+				if lines_map.commands.len() > 0 {
+					let title = node.metadata.title.clone() + SUFFIX_COMMAND;
+					Some(quote! { $(title) })
+				} else {
+					None
+				}
+			});
 	
 	quote! {
 		#[enum_dispatch]
-		#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+		#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 		pub enum CommandLine {
 			$(SeparatedItems(titles, ",\n"))
 		}
@@ -41,12 +47,12 @@ fn tokens_enum(nodes: &[IDNode]) -> Tokens {
 }
 
 pub fn all_tokens(cfg: &YarnConfig,
-                  nodes: &[IDNode])
+                  nodes_mapped: &[(&IDNode, LinesMap)])
                   -> Tokens {
 	let imports_and_trait = 
 		tokens_imports_and_trait(cfg);
 	let enum_tokens = 
-		tokens_enum(nodes);
+		tokens_enum(nodes_mapped);
 	
 	quote! {
 		$(imports_and_trait)

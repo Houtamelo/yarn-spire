@@ -201,7 +201,14 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 	}
 
 	let args_expr =
-		build_args(args.clone(), &literal, &if_condition, &metadata)?;
+		build_args(args.clone())
+			.map_err(|err| anyhow!(
+				"Could not parse argument as `YarnExpr`.\n\
+				 Error: `{err:?}`\n\
+		         Literal: `{literal}`\n\
+				 If Condition: `{if_condition:?}`\n\
+		         Metadata: `{metadata:?}`")
+			)?;
 
 	if literal.is_empty()
 		&& args_expr.is_empty() {
@@ -278,21 +285,15 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 }
 
 // Reference arguments are just for error messages.
-fn build_args(unparsed_args: Vec<String>, literal: &String,
-              if_condition: &Option<YarnExpr>, metadata: &Option<String>)
-              -> Result<Vec<YarnExpr>> {
+fn build_args(unparsed_args: Vec<String>) -> Result<Vec<YarnExpr>> {
 	let exprs: Vec<YarnExpr> =
 		unparsed_args
 			.iter()
 			.map(|unparsed_arg|
 				parse_yarn_expr(unparsed_arg)
 					.map_err(|err| anyhow!(
-						"Could not parse argument as `YarnExpr`.\n\
-				         Error: `{err:?}`\n\
-				         All Unparsed Arguments: `{unparsed_args:?}`\n\
-				         Literal: `{literal}`\n\
-						 If Condition: `{if_condition:?}`\n\
-				         Metadata: `{metadata:?}`")))
+						"{err:?}\n\
+				         All Unparsed Arguments: `{unparsed_args:?}`")))
 			.try_collect()?;
 
 	return Ok(exprs);

@@ -71,3 +71,7 @@ impl<'a> OptionLineEnum<'a> {
 		return line_variant(self.raw_id);
 	}
 }
+
+pub fn enum_type_title(node_title: &str) -> String {
+	format!("NodeTitle::{node_title}({node_title})")
+}

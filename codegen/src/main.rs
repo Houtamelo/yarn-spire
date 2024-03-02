@@ -25,7 +25,7 @@ mod quoting;
 
 use anyhow::Result;
 use io::read;
-use parsing::parse_as_nodes;
+use parsing::parse_nodes;
 use crate::config::YarnConfig;
 
 type LineNumber = usize;
@@ -39,7 +39,7 @@ struct UnparsedLine {
 
 pub fn main() -> Result<()> {
 	let config = 
-		YarnConfig::parse_file("/yarn_project.toml")?;
+		YarnConfig::parse_file()?;
 	
 	let yarn_files = 
 		read::find_and_read_yarn_files(&config)?;
@@ -47,8 +47,8 @@ pub fn main() -> Result<()> {
 	let (nodes, var_declarations) =
 		yarn_files
 			.into_iter()
-			.map(|source_lines| 
-				parse_as_nodes(source_lines))
+			.map(|yarn_file| 
+				parse_nodes(yarn_file))
 			.try_fold((vec![], vec![]), |(mut nodes_sum, mut vars_sum), node_result| {
 				let (nodes, var_declarations) = node_result?;
 				nodes_sum.extend(nodes);
@@ -56,6 +56,9 @@ pub fn main() -> Result<()> {
 				Result::<_>::Ok((nodes_sum, vars_sum))
 			})?;
 	
-	io::write::generate_and_write(&config, nodes, var_declarations)
+	io::write::generate_and_write(&config, nodes, var_declarations)?;
+	
+	println!("Code generated successfully!");
+	Ok(())
 }
 

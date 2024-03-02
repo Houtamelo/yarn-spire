@@ -37,8 +37,7 @@ fn parse_meta_line(source_line: &UnparsedLine) -> Result<MetaLine> {
 				"Missing title name in declaration.\n\
 				 A `title:` declaration was found but no title was provided.\n\
 				 At line nº{}, `{}`\n\n\
-				 Help: Provide a title.", source_line.line_number, source_line.text
-			))
+				 Help: Provide a title.", source_line.line_number, source_line.text))
 		}
 	} else if strip_start_then_trim!(text, "tags" | "Tags" | "TAGS")
 		&& strip_start_then_trim!(text, ':') {
@@ -58,8 +57,7 @@ fn parse_meta_line(source_line: &UnparsedLine) -> Result<MetaLine> {
 			Err(anyhow!(
 				"Invalid tracking setting in Node metadata: {text}\n\n\
 				 Help: valid values are either `always` or `never`.\n\
-				 At line nº{}, `{}`", source_line.line_number, source_line.text
-			))
+				 At line nº{}, `{}`", source_line.line_number, source_line.text))
 		}
 	} else {
 		Ok(MetaLine::Custom(text.to_string()))
@@ -88,8 +86,7 @@ pub fn parse_metadata<'a>(lines: impl IntoIterator<Item = &'a UnparsedLine>) -> 
 							 First: `{old_title}` at line nº{old_number}\n\
 							 Second: `{title_to_set}` at line nº{line_number}\n\n\
 							 Help: Delete one of the declarations.\n\
-							 Help: Nodes cannot have more than one title."
-						))
+							 Help: Nodes cannot have more than one title."))
 					},
 					None => {
 						title = Some((line_number, title_to_set))
@@ -107,8 +104,7 @@ pub fn parse_metadata<'a>(lines: impl IntoIterator<Item = &'a UnparsedLine>) -> 
 							 First: `{old_tracking:?}` at line nº{old_number}\n\
 							 Second: `{tracking:?}` at line nº{line_number}\n\n\
 							 Help: Delete one of the declarations.\n\
-							 Help: It doesn't make sense to set the same setting twice."
-						))
+							 Help: It doesn't make sense to set the same setting twice."))
 					},
 					None => {
 						tracking = Some((line_number, tracking_to_set));
@@ -126,8 +122,7 @@ pub fn parse_metadata<'a>(lines: impl IntoIterator<Item = &'a UnparsedLine>) -> 
 			return Err(anyhow!(
 				"Missing `node title` declaration in node.\n\n\
 				 Help: To declare a title, write a line with the syntax: `title: MyNodeTitleHere`\n\
-				 Help: The title should be the first metadata line."
-			))
+				 Help: The title should be the first metadata line."))
 		};
 	
 	let first_char = title_name.chars().next().unwrap();
@@ -137,8 +132,7 @@ pub fn parse_metadata<'a>(lines: impl IntoIterator<Item = &'a UnparsedLine>) -> 
 			"Invalid first character in `node title`.\n\
 			 At line nº{title_number}, title: {title_name}\n\n\
 			 Help: The first character of a title needs to be a ASCII letter or a underscore('_').\n\
-			 Help: Titles cannot start with numbers or other special characters ('*', '/', '+', '-', ..)."
-		))
+			 Help: Titles cannot start with numbers or other special characters ('*', '/', '+', '-', ..)."))
 	}
 	
 	if let Some(invalid_char) = 
@@ -149,8 +143,7 @@ pub fn parse_metadata<'a>(lines: impl IntoIterator<Item = &'a UnparsedLine>) -> 
 				"Invalid character `{invalid_char}` in `node title`.\n\
 				 Full Name: `{title_name}`
 				 At line nº{title_number}\n\n\
-				 Help: Titles can only contain letters, digits and underscores('_')."
-			))
+				 Help: Titles can only contain letters, digits and underscores('_')."))
 	}
 
 	Ok(NodeMetadata {
@@ -163,8 +156,29 @@ pub fn parse_metadata<'a>(lines: impl IntoIterator<Item = &'a UnparsedLine>) -> 
 
 #[test]
 fn test_parsing() {
+	macro_rules! assert_eq_ok {
+	    ($str: literal, $pattern: expr) => {
+		    pretty_assertions::assert_eq!(parse_meta_line(&UnparsedLine { line_number: 0, text: $str.to_string() }).unwrap(), $pattern)
+	    };
+	}
+	
 	use houtamelo_utils::prelude::*;
-	use std::assert_matches::assert_matches;
+	
+	assert_eq_ok!("title: Ch01_Awakening", MetaLine::Title(own!("Ch01_Awakening")));
+	assert_eq_ok!("   tags: more, night", MetaLine::Tags(vec![own!("more"), own!("night")]));
+	assert_eq_ok!("tags: day, light", MetaLine::Tags(vec![own!("day"), own!("light")]));
+	assert_eq_ok!("\ttags: less, stuff", MetaLine::Tags(vec![own!("less"), own!("stuff")]));
+	assert_eq_ok!("custom_tag: any info here", MetaLine::Custom(own!("custom_tag: any info here")));
+	assert_eq_ok!("\tanother custom_tag: other info   ", MetaLine::Custom(own!("another custom_tag: other info")));
+	assert_eq_ok!("tracking: always", MetaLine::Tracking(TrackingSetting::Always));
+
+	assert_eq_ok!("tracking:  never", MetaLine::Tracking(TrackingSetting::Never));
+	assert_eq_ok!("tracking:Never", MetaLine::Tracking(TrackingSetting::Never));
+	assert_eq_ok!("tracking:\tNEVER", MetaLine::Tracking(TrackingSetting::Never));
+	assert_eq_ok!("tracking:  Always", MetaLine::Tracking(TrackingSetting::Always));
+	assert_eq_ok!("tracking:ALWAYS", MetaLine::Tracking(TrackingSetting::Always));
+	assert_eq_ok!("tracking:NeVeR", MetaLine::Tracking(TrackingSetting::Never));
+	assert_eq_ok!("tracking:AlWaYS", MetaLine::Tracking(TrackingSetting::Always));
 	
 	let valid_text = [
 		"title: Ch01_Awakening",
@@ -183,27 +197,6 @@ fn test_parsing() {
 			.map(|(line_number, text)| UnparsedLine { line_number, text: text.to_string() })
 			.collect::<Vec<UnparsedLine>>();
 
-	let meta_lines =
-		unparsed_lines
-			.iter()
-			.map(|unparsed_line| parse_meta_line(&unparsed_line))
-			.collect::<Vec<_>>();
-
-	assert_eq!(meta_lines[0], MetaLine::Title(own!("Ch01_Awakening")));
-	assert_eq!(meta_lines[1], MetaLine::Tags(vec![own!("more"), own!("night")]));
-	assert_eq!(meta_lines[2], MetaLine::Tags(vec![own!("day"), own!("light")]));
-	assert_eq!(meta_lines[3], MetaLine::Tags(vec![own!("less"), own!("stuff")]));
-	assert_eq!(meta_lines[4], MetaLine::Custom(own!("custom_tag: any info here")));
-	assert_eq!(meta_lines[5], MetaLine::Custom(own!("another custom_tag: other info")));
-	assert_eq!(meta_lines[6], MetaLine::Tracking(TrackingSetting::Always));
-	assert_eq!("tracking:  never", MetaLine::Tracking(TrackingSetting::Never));
-	assert_eq!("tracking:Never", MetaLine::Tracking(TrackingSetting::Never));
-	assert_eq!("tracking:\tNEVER", MetaLine::Tracking(TrackingSetting::Never));
-	assert_matches!("tracking:  Always", MetaLine::Tracking(TrackingSetting::Always));
-	assert_matches!("tracking:ALWAYS", MetaLine::Tracking(TrackingSetting::Always));
-	assert_matches!("tracking:NeVeR", Err(_));
-	assert_matches!("tracking:AlWaYS", Err(_));
-	
 	let valid_meta = 
 		parse_metadata(&unparsed_lines)
 			.unwrap();

@@ -1,7 +1,7 @@
 use genco::lang::rust::Tokens;
 use genco::quote;
 use crate::config::YarnConfig;
-use crate::quoting::helper::Comments;
+use crate::quoting::util::Comments;
 
 pub fn all_tokens(cfg: &YarnConfig) -> Tokens {
 	quote! {
@@ -14,8 +14,8 @@ pub fn all_tokens(cfg: &YarnConfig) -> Tokens {
 			r#" - A type that provides type-safe information about a variable that can be read/written inside a coroutine."#,
 			r#" - You must implement this trait for every single variable that needs to be accessed/mutated inside a coroutine."#,
 			r#" - This may seem like boilerplate, but this is what allows the compiler to **ensure type safety inside Nodes**. "#,
-			r#" It also **ensures** that you can't make typos when writing variable names or perform operations that don't make sense for a given variable type,"#,
-			r#" such as comparing a `String` with a number."#,
+			" It also **ensures** that you can't make typos when writing variable names or perform operations that don't make sense \n\
+			  for a given variable type, such as comparing a `String` with a number.",
 			r#" # Example"#,
 			r#" Assuming you already have a type that implements [VariableStorage](crate::traits::VariableStorage):"#,
 			r#" ```rs"#,
@@ -49,8 +49,8 @@ pub fn all_tokens(cfg: &YarnConfig) -> Tokens {
 			r#" // instead, we pass the type that indicates everything we need to know about the variable at compile time."#,
 			r#" storage.set_var::<PlayerName>("Jane");"#,
 			r#" ```"#,
-			r#" Although using YarnVar requires additional "boilerplate" code, "#,
-			r#" it saves time and effort in the long run by preventing runtime errors."#,
+			"Although using YarnVar requires additional \"boilerplate\" code, \n\
+			 it saves time and effort in the long run by preventing runtime errors.",
 			r#" **This is the philosophy behind the design of this library.**"#]))
 		pub trait YarnVar {
 			type Return;

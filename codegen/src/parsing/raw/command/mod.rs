@@ -60,10 +60,18 @@ impl<'a> Iterator for ArgBuilder<'a> {
 				ArgState::Empty => {
 					match (next, self.allow_yarn_set_syntax) {
 						('t', true) =>
-							if chars.next_if_eq(&'o')
-							        .is_some_and(|_| matches!(chars.peek(), Some(' ' | '\t'))) {
-								chars.next();
-								self.allow_yarn_set_syntax = false;
+							if chars.next_if_eq(&'o').is_some() {
+								if matches!(chars.peek(), Some(' ' | '\t')) {
+									chars.next();
+									self.allow_yarn_set_syntax = false;
+								} else {
+									state = ArgState::Building {
+										char_state: CharState::Std,
+										previous_char: 'o',
+										nesting: vec![],
+										sum: String::from("to"),
+									};
+								}
 							} else {
 								state = ArgState::Building {
 									char_state: CharState::Std,
@@ -358,7 +366,7 @@ fn parse_set_command(args_iter: &mut ArgBuilder, ended_at_name: EndedWithDoubleA
 					 Variable name: {unparsed_string}")
 				)?;
 
-		let YarnExpr::VarGet(name) = expr
+		let YarnExpr::GetVar(name) = expr
 			else {
 				return Err(anyhow!(
 					"Expected `variable name` argument to be `YarnExpr::VarGet(var_name)`.\n\
