@@ -4,24 +4,17 @@ use syn::Expr;
 use crate::expressions::yarn_expr::YarnExpr;
 use crate::expressions::yarn_lit::YarnLit;
 use crate::expressions::yarn_ops::{YarnBinaryOp, YarnUnaryOp};
-use pretty_assertions::assert_matches;
+use pretty_assertions::{assert_matches, assert_eq};
 use proc_macro2::{Delimiter, Group, Ident, Punct, TokenStream};
 use quote::{TokenStreamExt, ToTokens};
-
-macro_rules! assert_string_parse {
-    ($lit: literal, $pattern: expr) => {{
-		let parse_result = crate::expressions::parse_yarn_expr($lit);
-		match parse_result {
-			Ok(ok)   => { pretty_assertions::assert_eq!(ok, $pattern) }
-			Err(err) => { panic!("{err}") }
-		}
-    }};
-}
+use expressions::parse_yarn_expr;
+use crate::expressions;
+use crate::expressions::tests::parse_expect_eq;
 
 #[test]
 fn test_nested() {
-	assert_string_parse!("($MyVar)", YarnExpr::Parenthesis(Box::from(YarnExpr::GetVar(own!("MyVar")))));
-	assert_string_parse!("($MyVar + 5)", 
+	parse_expect_eq!("($MyVar)", YarnExpr::Parenthesis(Box::from(YarnExpr::GetVar(own!("MyVar")))));
+	parse_expect_eq!("($MyVar + 5)", 
 		YarnExpr::Parenthesis(Box::from(
 			YarnExpr::BinaryOp {
 				yarn_op: YarnBinaryOp::Add,
@@ -30,7 +23,7 @@ fn test_nested() {
 			})
 		)
 	);
-	assert_string_parse!("($MyVar+6)", 
+	parse_expect_eq!("($MyVar+6)", 
 		YarnExpr::Parenthesis(Box::from(
 			YarnExpr::BinaryOp {
 				yarn_op: YarnBinaryOp::Add,
@@ -39,7 +32,7 @@ fn test_nested() {
 			})
 		)
 	);
-	assert_string_parse!("-($MyVar+6)",
+	parse_expect_eq!("-($MyVar+6)",
 		YarnExpr::UnaryOp {
 			yarn_op: YarnUnaryOp::Negate,
 			right: Box::from(
@@ -53,7 +46,7 @@ fn test_nested() {
 			)
 		}
 	);
-	assert_string_parse!("($MyVar - 7)", 
+	parse_expect_eq!("($MyVar - 7)", 
 		YarnExpr::Parenthesis(Box::from(
 			YarnExpr::BinaryOp {
 				yarn_op: YarnBinaryOp::Sub,
@@ -62,7 +55,7 @@ fn test_nested() {
 			})
 		)
 	);
-	assert_string_parse!("($MyVar * 10)", 
+	parse_expect_eq!("($MyVar * 10)", 
 		YarnExpr::Parenthesis(Box::from(
 			YarnExpr::BinaryOp {
 				yarn_op: YarnBinaryOp::Mul,
@@ -71,7 +64,7 @@ fn test_nested() {
 			})
 		)
 	);
-	assert_string_parse!("($MyVar / 12)", 
+	parse_expect_eq!("($MyVar / 12)", 
 		YarnExpr::Parenthesis(Box::from(
 			YarnExpr::BinaryOp {
 				yarn_op: YarnBinaryOp::Div,
@@ -80,7 +73,7 @@ fn test_nested() {
 			})
 		)
 	);
-	assert_string_parse!("($MyVar % 15) + (2 * $other_var)", 
+	parse_expect_eq!("($MyVar % 15) + (2 * $other_var)", 
 		YarnExpr::BinaryOp {
 			yarn_op: YarnBinaryOp::Add,
 			left: Box::from(YarnExpr::Parenthesis(Box::from(
@@ -101,7 +94,7 @@ fn test_nested() {
 			),
 		}
 	);
-	assert_string_parse!("(($MyVar % 15) + (2 * $other_var)) / 5.0", 
+	parse_expect_eq!("(($MyVar % 15) + (2 * $other_var)) / 5.0", 
 		YarnExpr::BinaryOp {
 			yarn_op: YarnBinaryOp::Div,
 			left: Box::from(YarnExpr::Parenthesis(Box::from(YarnExpr::BinaryOp {
@@ -130,10 +123,11 @@ fn test_nested() {
 
 #[test]
 fn test() {
-	assert_string_parse!("$MyVar", 
+	parse_expect_eq!("$MyVar", 
 		YarnExpr::GetVar(own!("MyVar")));
-	assert_string_parse!("$SlightComplex_var_Name", 
+	parse_expect_eq!("$SlightComplex_var_Name", 
 		YarnExpr::GetVar(own!("SlightComplex_var_Name")));
-	assert_string_parse!("$SlightComplex_var_Name_5_num95", 
+	parse_expect_eq!("$SlightComplex_var_Name_5_num95", 
 		YarnExpr::GetVar(own!("SlightComplex_var_Name_5_num95")));
 }
+

@@ -8,77 +8,42 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7735c340-632b-4fb2-bdc9-44c9e73ceef0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/../codegen/src/expressions/built_in_calls.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../codegen/src/expressions/declaration_ty.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/built_in_functions.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/built_in_functions.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/config.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/config.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/custom_parser.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/custom_parser.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/mod.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/arg_parser/mod.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/arg_parser/tests.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/tests_if.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/tests_options.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../build_and_move_to_tests_debug.bat" beforeDir="false" afterPath="$PROJECT_DIR$/../build_and_move_to_tests_debug.bat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../build_and_move_to_tests_release.bat" beforeDir="false" afterPath="$PROJECT_DIR$/../build_and_move_to_tests_release.bat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/tests/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/tests/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_binary.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_binary.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_function_call.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_function_call.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_literals.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_literals.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_resolve.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_resolve.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_unary.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_unary.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_var_get.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/tests/test_var_get.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/yarn_expr.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/yarn_expr.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/yarn_lit.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/yarn_lit.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/expressions/yarn_ops.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/expressions/yarn_ops.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../codegen/src/io/read.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/io/read.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/io/write/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/io/write/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/io/write/nodes.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/io/write/nodes.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/io/write/template.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/io/write/core_types.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/io/write/util.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/io/write/util.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/grouping/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/grouping/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/grouping/quoted.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/grouping/scope/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/grouping/scope/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/grouping/scope/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/grouping/scope/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/choices.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/choices.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/tests.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/grouping/if_branch.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/grouping/if_branch.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/grouping/options.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/grouping/options.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/choices.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/options.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/if_statement.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/if_statement.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/branches/tests.rs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/command/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/command/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/command/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/command/tests.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/node_metadata.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/node_metadata.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/speech/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/speech/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/speech/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/speech/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/splitting.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/splitting.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/tests.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../codegen/src/parsing/raw/var_declaration.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/parsing/raw/var_declaration.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/helper.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/util.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/quotable_types/enums.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/quotable_types/enums.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/quotable_types/scope.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/quotable_types/scope.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/command_line.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/command_line.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/default_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/default_storage.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/instruction.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/instruction.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/nodes/enums/any.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/enums/any.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/nodes/enums/command.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/enums/command.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/nodes/enums/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/enums/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/nodes/enums/option_line.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/enums/option_line.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/nodes/enums/options_fork.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/enums/options_fork.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/nodes/enums/speech.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/enums/speech.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/nodes/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/nodes/title.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/title.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/options.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/options.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/runtime.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/runtime.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/speech.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/speech.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/title.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/title.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/template/var_trait.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/var_trait.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/core_types/default_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/default_storage.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/title.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/nodes/title.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/core_types/title.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/core_types/title.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/quotable_types/line_ids.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/quotable_types/line_ids.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../codegen/src/quoting/quotable_types/next.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/quoting/quotable_types/next.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/built_in_functions.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/built_in_functions.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/command_line.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/command_line.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/line.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/instruction.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/nodes/ch01_awakening_command.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/nodes/ch01_awakening_command.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/nodes/ch01_awakening_option_line.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/nodes/ch01_awakening_option_line.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/nodes/ch01_awakening_speech.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/nodes/ch01_awakening_speech.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/options.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/options.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/storage.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nodes/concept_script.yarn" beforeDir="false" afterPath="$PROJECT_DIR$/src/nodes/concept_script.yarn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/speech.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/speech.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/title.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/title.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -117,19 +82,19 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Cargo.Expand concept::storage::built_in_functions.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.rust.reset.selective.auto.import": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
-    "org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon": "",
-    "settings.editor.selected.configurable": "language.rust.cargo.check"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Cargo.Expand concept::storage::built_in_functions.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.rust.reset.selective.auto.import&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
+    &quot;org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon&quot;: &quot;&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;language.rust.cargo.check&quot;
   }
-}]]></component>
+}</component>
   <component name="RsExternalLinterProjectSettings">
     <option name="additionalArguments" value="--all-targets" />
     <option name="runOnTheFly" value="true" />

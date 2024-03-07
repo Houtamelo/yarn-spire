@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::rc::Rc;
 use houtamelo_utils::prelude::CountOrMore;
 use anyhow::{anyhow, Result};
 use crate::LineNumber;
@@ -7,8 +8,9 @@ use crate::parsing::raw::speech::Speaker;
 use crate::parsing::YarnNode;
 use crate::parsing::grouping::options::OptionsFork;
 use crate::parsing::grouping::scope::{FlatLine, Flow, YarnScope};
-use crate::parsing::raw::branches::if_statement::{ElseIfStruct, ElseStruct, IfStruct};
-use crate::parsing::raw::command::CommandVariant;
+use crate::parsing::raw::branches::if_statement::{ElseIf_, Else_, If_};
+use crate::parsing::raw::command::{CommandVariant, SetOperation};
+use crate::quoting::quotable_types::enums::LineEnum;
 use crate::quoting::quotable_types::node::IDNode;
 use crate::quoting::quotable_types::scope::IDScope;
 
@@ -19,6 +21,8 @@ pub struct IDOptionLine {
 	pub text: (String, Vec<YarnExpr>),
 	pub if_condition: Option<YarnExpr>,
 	pub tags: Vec<String>,
+	pub fork_qualified: Rc<str>,
+	pub index_on_fork: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,16 +64,16 @@ pub struct IDCustomCommand {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BuiltInCommand {
-	Set { line_number: LineNumber, var_name: String, value: YarnExpr },
+	Set { line_number: LineNumber, var_name: String, op: SetOperation, value: YarnExpr },
 	Jump { line_number: LineNumber, node_destination_title: String },
 	Stop { line_number: LineNumber },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IDIfBranch {
-	pub if_: (IfStruct, Option<Box<IDScope>>),
-	pub else_ifs: Vec<(ElseIfStruct, Option<Box<IDScope>>)>,
-	pub else_: Option<(ElseStruct, Option<Box<IDScope>>)>,
+	pub if_: (If_, Option<Box<IDScope>>),
+	pub else_ifs: Vec<(ElseIf_, Option<Box<IDScope>>)>,
+	pub else_: Option<(Else_, Option<Box<IDScope>>)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -172,13 +176,17 @@ macro_rules! gen_id {
     }};
 }
 
-fn convert_to_id_scope(scope: YarnScope, taken_ids: &mut HashSet<String>,
-                       id_prefix: &str, id_counter: &mut usize) -> Result<IDScope> {
+fn convert_to_id_scope(node_title: &str,
+					   scope: YarnScope, 
+                       taken_ids: &mut HashSet<String>,
+                       id_prefix: &str, 
+                       id_counter: &mut usize) -> Result<IDScope> {
 	let indent = scope.indent();
 	
 	let id_flows =
-		scope.into_flows()
-			.map(|flow|
+		scope
+			.into_flows()
+			.map(|flow| {
 				match flow {
 					Flow::Flat(flat_lines) => {
 						let id_flat_lines = flat_lines
@@ -200,11 +208,12 @@ fn convert_to_id_scope(scope: YarnScope, taken_ids: &mut HashSet<String>,
 									},
 									FlatLine::Command(command) => {
 										match command.variant {
-											CommandVariant::Set { var_name, arg } => {
+											CommandVariant::Set { var_name, op, value } => {
 												IDFlatLine::BuiltInCommand(BuiltInCommand::Set {
 													line_number: command.line_number,
 													var_name,
-													value: arg,
+													op,
+													value,
 												})
 											},
 											CommandVariant::Jump { node_name } => {
@@ -234,18 +243,28 @@ fn convert_to_id_scope(scope: YarnScope, taken_ids: &mut HashSet<String>,
 						Result::<_, anyhow::Error>::Ok(IDFlow::Flat(id_flat_lines))
 					},
 					Flow::OptionsFork(options_fork) => {
+						let virtual_id = gen_id!(id_prefix, id_counter);
+						let fork_enum = LineEnum {
+							node_title,
+							raw_id: &virtual_id,
+							instruction_kind: InstructionKind::OptionsFork
+						};
+
+						let fork_qualified: Rc<str> = Rc::from(fork_enum.typed_qualified());
+
 						let mut id_options_iter =
 							options_fork
 								.options
 								.into_iter()
-								.map(|(line, scope)| {
+								.enumerate()
+								.map(|(index_on_fork, (line, scope))| {
 									let line_id = line
 										.line_id
 										.unwrap_or_else(|| gen_id!(id_prefix, id_counter));
 
 									let id_scope = scope
 										.map(|scope|
-											convert_to_id_scope(*scope, taken_ids, id_prefix, id_counter)
+											convert_to_id_scope(node_title, *scope, taken_ids, id_prefix, id_counter)
 												.map(Box::from))
 										.transpose()?;
 
@@ -255,6 +274,8 @@ fn convert_to_id_scope(scope: YarnScope, taken_ids: &mut HashSet<String>,
 										text: line.text,
 										if_condition: line.if_condition,
 										tags: line.tags,
+										fork_qualified: fork_qualified.clone(),
+										index_on_fork,
 									}, id_scope))
 								});
 
@@ -267,20 +288,20 @@ fn convert_to_id_scope(scope: YarnScope, taken_ids: &mut HashSet<String>,
 							id_options_iter.try_collect()?;
 
 						Ok(IDFlow::OptionsFork(IDOptionsFork {
-							virtual_id: gen_id!(id_prefix, id_counter),
+							virtual_id,
 							options: CountOrMore::new([first_id_option], other_id_options),
 						}))
 					},
 					Flow::IfBranch(if_branch) => {
-						let id_if_scope = 
+						let id_if_scope =
 							if_branch
 								.if_.1
 								.map(|if_scope|
-									convert_to_id_scope(*if_scope, taken_ids, id_prefix, id_counter)
+									convert_to_id_scope(node_title, *if_scope, taken_ids, id_prefix, id_counter)
 										.map(Box::from))
 								.transpose()?;
 
-						let id_else_ifs = 
+						let id_else_ifs =
 							if_branch
 								.else_ifs
 								.into_iter()
@@ -288,21 +309,21 @@ fn convert_to_id_scope(scope: YarnScope, taken_ids: &mut HashSet<String>,
 									let id_scope =
 										scope_option
 											.map(|scope|
-												convert_to_id_scope(*scope, taken_ids, id_prefix, id_counter)
+												convert_to_id_scope(node_title, *scope, taken_ids, id_prefix, id_counter)
 													.map(Box::from))
 											.transpose()?;
 
 									Result::<_, anyhow::Error>::Ok((elseif, id_scope))
 								}).try_collect()?;
 
-						let id_else = 
+						let id_else =
 							if_branch
 								.else_
 								.map(|(else_, scope_option)| {
 									let id_scope =
 										scope_option
 											.map(|scope|
-												convert_to_id_scope(*scope, taken_ids, id_prefix, id_counter)
+												convert_to_id_scope(node_title, *scope, taken_ids, id_prefix, id_counter)
 													.map(Box::from))
 											.transpose()?;
 
@@ -315,8 +336,8 @@ fn convert_to_id_scope(scope: YarnScope, taken_ids: &mut HashSet<String>,
 							else_: id_else,
 						}))
 					},
-				})
-			.try_collect()?;
+				}
+			}).try_collect()?;
 	
 	return Ok(IDScope {
 		indent,
@@ -420,7 +441,7 @@ pub fn convert_to_id_nodes(nodes: Vec<YarnNode>) -> Result<Vec<IDNode>> {
 				node.contents
 					.into_iter()
 					.map(|scope|
-						convert_to_id_scope(scope, &mut taken_ids, &prefix, &mut id_counter))
+						convert_to_id_scope(&node.metadata.title, scope, &mut taken_ids, &prefix, &mut id_counter))
 					.try_collect()?;
 			
 			Ok(IDNode {

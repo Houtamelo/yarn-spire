@@ -62,10 +62,10 @@ impl FormatInto<Rust> for &BuiltInFunctionCall {
 				quote_in!(*tokens => built_in_functions::int($(num_expr.as_ref())))
 			},
 			BuiltInFunctionCall::Visited(node_title) => {
-				quote_in!(*tokens => storage.visited(&$(enum_type_title(node_title))))
+				quote_in!(*tokens => storage.visited($(enum_type_title(node_title))))
 			},
 			BuiltInFunctionCall::VisitedCount(node_title) => {
-				quote_in!(*tokens => storage.visited_count(&$(enum_type_title(node_title))))
+				quote_in!(*tokens => storage.visited_count($(enum_type_title(node_title))))
 			},
 		}
 	}

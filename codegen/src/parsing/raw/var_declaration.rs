@@ -200,7 +200,7 @@ impl<'a> Iterator for ArgBuilder<'a> {
 							}
 
 							// skip whitespace
-							while chars.next_if(|ch| matches!(*ch, ' ' | 't')).is_some() {}
+							while chars.next_if(|ch| matches!(*ch, ' ' | '\t')).is_some() {}
 
 							if false == matches!(*previous_char, '+' | '-' | '/' | '*' | '%' | '>' | '<' | '!' | '=')
 								|| chars.peek().is_none() {

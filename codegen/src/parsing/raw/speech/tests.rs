@@ -1,288 +1,190 @@
-/*
-use std::assert_matches::assert_matches;
+use pretty_assertions::{assert_eq, assert_matches};
 use houtamelo_utils::own;
-use crate::expressions::yarn_expr::YarnExpr;
-use crate::expressions::yarn_lit::YarnLit;
-use crate::expressions::yarn_ops::YarnBinaryOp;
 use crate::parsing::raw::{Content, ParseRawYarn};
 use crate::parsing::raw::speech::{Speech, Speaker};
 
-// Parsing a dialogue line with only speaker and line
-#[test]
-fn test_parse_dialogue_with_speaker_and_line() {
-	let line = "Speaker: This is the dialogue line";
-	let expected = Speech {
-		line_number: 0,
-		speaker: Some(Speaker::Literal(own!("Speaker"))),
-		text: (own!("This is the dialogue line"), vec![]),
-		metadata: None,
+macro_rules! expr {
+    ($lit: literal) => {
+	    crate::expressions::parse_yarn_expr($lit).unwrap()
+    };
+}
+
+macro_rules! speaker {
+	() => {
+		None
 	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
-}
-
-// Parsing a dialogue line with only speaker and line
-#[test]
-fn test_parse_dialogue_with_speaker_var() {
-	let line = "$player_name: This is the dialogue line";
-	let expected = Speech {
-		line_number: 0,
-		speaker: Some(Speaker::Variable(own!("$player_name"))),
-		text: (own!("This is the dialogue line"), vec![]),
-		metadata: None,
+	($lit: literal) => {
+		Some(Speaker::Literal(own!($lit)))
 	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
-}
-
-// Parsing a dialogue line with only speaker and line
-#[test]
-fn test_parse_dialogue_with_speaker_var_and_args() {
-	let line = "$player_name: This is the {5 + 3} dialogue line, the player name is ${player_name}";
-	let expected = Speech {
-		line_number: 0,
-		speaker: Some(Speaker::Variable(own!("$player_name"))),
-		text: (own!("This is the dialogue line"), 
-			vec![
-				YarnExpr::BinaryOp {
-					yarn_op: YarnBinaryOp::Add,
-					left: Box::new(YarnExpr::Lit(YarnLit::Int(5))),
-					right: Box::new(YarnExpr::Lit(YarnLit::Int(3))),
-				},
-				YarnExpr::VarGet(own!("player_name")),
-			]),
-		metadata: None,
+	({$speaker: ident}) => {
+		Some(Speaker::Variable(stringify!($speaker).to_string()))
 	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
 }
 
-// Parsing a dialogue line with only speaker and line
-#[test]
-fn test_parse_dialogue_with_speaker_and_args() {
-	let line = "Speaker: This is { 3 / 10 } the dialogue line";
-	let expected = Speech {
-		line_number: 0,
-		speaker: Some(Speaker::Literal(own!("Speaker"))),
-		text: (own!("This is the dialogue line"), 
-			vec![
-				YarnExpr::BinaryOp {
-					yarn_op: YarnBinaryOp::Div,
-					left: Box::new(YarnExpr::Lit(YarnLit::Int(3))),
-					right: Box::new(YarnExpr::Lit(YarnLit::Int(10))),
-				},
-			]),
-		metadata: None,
+macro_rules! line_id {
+	() => {
+		None
 	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
-}
-
-// Parsing a dialogue line with speaker and metadata
-#[test]
-fn test_parse_dialogue_with_speaker_and_metadata() {
-	let line = "Speaker: This is the dialogue line #metadata";
-	let expected = Speech {
-		line_number: 0,
-		speaker: Some(Speaker::Literal(own!("Speaker"))),
-		text: (own!("This is the dialogue line"), vec![]),
-		metadata: Some(own!("metadata")),
+	($lit: literal) => {
+		Some(own!($lit))
 	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
 }
 
-// Parsing a dialogue line with only speaker and metadata
-#[test]
-fn test_parse_dialogue_with_speaker_and_only_metadata() {
-	let line = "Speaker: #metadata";
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_matches!(result, Err(_)); // empty lines are invalid
+macro_rules! speech {
+	($text: literal $(, tags[$($tags: literal),*])? $(, args[$($args: literal),*])? $(, id:$id: literal)?) => {
+	    Speech {
+			line_number: 0,
+			line_id: line_id!($($id)?),
+			speaker: None,
+			text: (own!($text), vec![$($(expr!($args)),*)?]),
+			tags: vec![$($(own!($tags)),*)?],
+		}
+    };
+	($speaker: literal: $text: literal $(, tags[$($tags: literal),*])? $(, args[$($args: literal),*])? $(, id:$id: literal)?) => {
+	    Speech {
+			line_number: 0,
+			line_id: line_id!($($id)?),
+			speaker: speaker!($speaker),
+			text: (own!($text), vec![$($(expr!($args)),*)?]),
+			tags: vec![$($(own!($tags)),*)?],
+		}
+    };
+	({$speaker: ident}: $text: literal $(, tags[$($tags: literal),*])? $(, args[$($args: literal),*])? $(, id:$id: literal)?) => {
+	    Speech {
+			line_number: 0,
+			line_id: line_id!($($id)?),
+			speaker: speaker!({$speaker}),
+			text: (own!($text), vec![$($(expr!($args)),*)?]),
+			tags: vec![$($(own!($tags)),*)?],
+		}
+    };
 }
 
-// Parsing a dialogue line with only line
-#[test]
-fn test_parse_dialogue_with_only_line() {
-	let line = "This is the dialogue line";
-	let expected = Speech {
-		line_number: 0,
-		speaker: None,
-		text: (own!("This is the dialogue line"), vec![]),
-		metadata: None,
-	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
-}
-
-// Parsing a dialogue line with escaped quotes
-#[test]
-fn test_parse_dialogue_with_escaped_quotes() {
-	let line = "Speaker: \"This is the \\\"dialogue\\\" line\"";
-	let expected = Speech {
-		line_number: 0,
-		speaker: Some(Speaker::Literal(own!("Speaker"))),
-		text: (own!("\"This is the \\\"dialogue\\\" line\""), vec![]),
-		metadata: None,
-	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
-}
-
-// Parsing a dialogue line with empty speaker
-#[test]
-fn test_parse_dialogue_with_empty_speaker() {
-	let line = ": This is the dialogue line";
-	let expected = Speech {
-		line_number: 0,
-		speaker: None,
-		text: (own!(": This is the dialogue line"), vec![]),
-		metadata: None,
-	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
-}
-
-// Parsing a dialogue line with only colon
-#[test]
-fn test_parse_dialogue_with_only_colon() {
-	let line = ":";
-	let expected = Speech {
-		line_number: 0,
-		speaker: None,
-		text: (own!(":"), vec![]),
-		metadata: None,
-	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
-}
-
-// Parsing a dialogue line with only whitespace
-#[test]
-fn test_parse_dialogue_with_only_whitespace() {
-	assert_matches!(Speech::parse_raw_yarn("   ", 0), None);
-}
-
-// Parsing a dialogue line with colon in line
-#[test]
-fn test_parse_dialogue_with_colon_in_line() {
-	let line = "This is the dialogue line with a colon: in it";
-	let expected = Speech {
-		line_number: 0,
-		speaker: None,
-		text: (own!("This is the dialogue line with a colon: in it"), vec![]),
-		metadata: None,
-	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
-}
-
-// Parsing a dialogue line with colon in line and speaker
-#[test]
-fn test_parse_dialogue_with_colon_in_line_and_speaker() {
-	let line = "Speaker: This is the dialogue line with a colon: in it";
-	let expected = Speech {
-		line_number: 0,
-		speaker: Some(Speaker::Literal(own!("Speaker"))),
-		text: (own!("This is the dialogue line with a colon: in it"), vec![]),
-		metadata: None,
-	};
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_eq!(result, Ok(expected));
-}
-
-#[test]
-fn test_from_str_starts_with_double_angle_bracket() {
-	let line = "<< This is a test line";
-	let result = Speech::parse_raw_yarn(line, 0);
-	assert_eq!(result, None);
-}
-
-#[test]
-fn test_from_str_starts_with_right_arrow() {
-	let line = "-> This is a test line";
-	let result = Speech::parse_raw_yarn(line, 0);
-	assert_eq!(result, None);
-}
-
-#[test]
-fn test_from_str_with_only_metadata() {
-	let line = "#metadata";
-	let result = Speech::parse_raw_yarn(line, 0).unwrap();
-	assert_matches!(result, Err(_));
+macro_rules! parse_unwrap {
+    ($lit: literal) => {{
+	    let Content::Speech(speech) =
+	        Speech::parse_raw_yarn($lit, 0).unwrap().unwrap() 
+	        else {
+		        panic!();
+	        };
+	    
+	    speech
+    }};
 }
 
 #[test]
 fn test() {
-	use std::assert_matches::assert_matches;
-	use crate::expressions::yarn_lit::YarnLit;
-	use crate::expressions::yarn_ops::YarnBinaryOp;
-	use houtamelo_utils::own;
+	assert_eq!(
+		parse_unwrap!("Speaker: This is the dialogue line"),
+		speech!("Speaker": "This is the dialogue line")
+	);
 
-	let source_text = [
-		"title: Ch01_Awakening",
-		"   tags: #hello there good sir",
-		"---",
-		"<<fade_in 1>>",
-		"<<cg \"CG_ch01_Not-yet-awake\">>",
-		"\tYou wake up. Something you shouldn't have done.",
-		"Ethel: hey there, {$player_name} after var",
-		"<<fade_out 1>>",
-		"-> Option A Do that",
-		"\t  \t-> Option B Do this # with tags",
-		"<<if $condition_true>>",
-		"<<elseif false>> // with comments",
-		"   \t<<else>>",
-		"<<endif>>",
-		"===",
-		"Ethel: hey there, {as + 1312sa} after var",
-		"Ethel: hey there, I played this game {(5 + 7) * 10} times!",
-	];
+	assert_eq!(
+		parse_unwrap!("{$player_name}: This is the dialogue line"),
+		speech!({player_name}: "This is the dialogue line")
+	);
+	
+	assert_eq!(
+		parse_unwrap!("{$player_name}: This is the {5 + 3} dialogue line, the player name is {$player_name}"),
+		speech!({player_name}: "This is the {} dialogue line, the player name is {}", args["5 + 3", "$player_name"])
+	);
+	
+	assert_eq!(
+		parse_unwrap!("Speaker: This is { 3 / 10 } the dialogue line"),
+		speech!("Speaker": "This is {} the dialogue line", args["3/10"])
+	);
 
-	assert_eq!(Speech::parse_raw_yarn(source_text[5], 5).unwrap(),
-		Content::Speech(
-			Speech{
-				line_number: 5,
-				speaker: None,
-				text: (own!("\tYou wake up. Something you shouldn't have done."), Vec::new()),
-				metadata: None,
-			}));
+	assert_eq!(
+		parse_unwrap!("Speaker: This is the dialogue line #metadata"),
+		speech!("Speaker": "This is the dialogue line", tags["metadata"])
+	);
 
-	assert_eq!(Speech::parse_raw_yarn(source_text[6], 6).unwrap(),
-		Content::Speech(
-			Speech {
-				line_number: 6,
-				speaker: Some(Speaker::Literal(own!("Ethel"))),
-				text: (own!("Ethel: hey there, {} after var"), vec![YarnExpr::VarGet(own!("player_name"))]),
-				metadata: None,
-			}));
+	assert_eq!(
+		parse_unwrap!("This is the dialogue line"),
+		speech!("This is the dialogue line")
+	);
 
-	assert_matches!(Speech::parse_raw_yarn(source_text[15], 15), Err(_));
+	assert_eq!(
+		parse_unwrap!("Speaker: \\\\\"This is the \"dialogue\" line\""),
+		speech!("Speaker": r#"\"This is the "dialogue" line""#)
+	);
 
-	assert_eq!(Speech::parse_raw_yarn(source_text[16], 16).unwrap(),
-		Content::Speech(
-			Speech {
-				speaker: Some(Speaker::Literal(own!("Ethel"))),
-				line_number: 16,
-				text: (own!("Ethel: hey there, I played this game {} times!"),
-					vec![
-						YarnExpr::BinaryOp {
-							yarn_op: YarnBinaryOp::Mul,
-							left: Box::from(
-								YarnExpr::Parenthesis(
-									Box::from(
-										YarnExpr::BinaryOp {
-											yarn_op: YarnBinaryOp::Add,
-											left: Box::new(YarnExpr::Lit(YarnLit::Int(5))),
-											right: Box::new(YarnExpr::Lit(YarnLit::Int(7))),
-										}
-									)
-								)
-							),
-							right: Box::new(YarnExpr::Lit(YarnLit::Int(10)))
-						}
-					]),
-				metadata: None,
-			}
-		));
+	assert_eq!(
+		parse_unwrap!(": This is the dialogue line"),
+		speech!(": This is the dialogue line")
+	);
+
+	assert_eq!(
+		parse_unwrap!("This is the dialogue line with a colon: in it"),
+		speech!("This is the dialogue line with a colon: in it")
+	);
+
+	assert_eq!(
+		parse_unwrap!("Speaker: This is the dialogue line with a colon: in it"),
+		speech!("Speaker": "This is the dialogue line with a colon: in it")
+	);
+
+	assert_eq!(
+		parse_unwrap!("\tYou wake up. Something you shouldn't have done."),
+		speech!("You wake up. Something you shouldn't have done.")
+	);
+	
+	assert_eq!(
+		parse_unwrap!("Ethel: hey there, {$player_name} after var"),
+		speech!("Ethel": "hey there, {} after var", args["$player_name"])
+	);
+	
+	assert_eq!(
+		parse_unwrap!("Ethel: hey there, I played this game {(5 + 7) * 10} times!"),
+		speech!("Ethel": "hey there, I played this game {} times!", args["(5+7)*10"])
+	);
+
+	assert_eq!(
+		parse_unwrap!("Speaker: This is the dialogue line #line:this_id"),
+		speech!("Speaker": "This is the dialogue line", id:"this_id")
+	);
+
+	assert_eq!(
+		parse_unwrap!("{$player_name}: This is the dialogue line#line:ad_2434"),
+		speech!({player_name}: "This is the dialogue line", id:"ad_2434")
+	);
+
+	assert_eq!(
+		parse_unwrap!("{$player_name}: This is the {5 + 3} dialogue line, the player name is {$player_name}  #line:ad_2434"),
+		speech!({player_name}: "This is the {} dialogue line, the player name is {}", args["5 + 3", "$player_name"], id:"ad_2434")
+	);
+
+	assert_eq!(
+		parse_unwrap!("Speaker: This is { 3 / 10 } the dialogue line  #line:232f0"),
+		speech!("Speaker": "This is {} the dialogue line", args["3/10"], id:"232f0")
+	);
+
+	assert_eq!(
+		parse_unwrap!("Speaker: This is the dialogue line #metadata #line:232f0"),
+		speech!("Speaker": "This is the dialogue line", tags["metadata"], id:"232f0")
+	);
 }
-*/
+
+macro_rules! parse {
+	($lit: literal) => {{
+	    Speech::parse_raw_yarn($lit, 0)
+	}};
+}
+
+#[test]
+fn test_invalid() {
+	assert_matches!(parse!("<< This is not a speech line"), None);
+	assert_matches!(parse!("-> This is not a speech line"), None);
+	assert_matches!(parse!("<- This is not a speech line"), None);
+	assert_matches!(parse!("#metadata"), Some(Err(_)));
+	
+	assert_matches!(parse!("<<fade_in 1>>"), None);
+	assert_matches!(parse!("<<cg \"CG_ch01_Not-yet-awake\">>"), None);
+	assert_matches!(parse!("<<fade_out 1>>"), None);
+	assert_matches!(parse!("-> Option A Do that"), None);
+	assert_matches!(parse!("   \t-> Option B Do this # with tags"), None);
+	assert_matches!(parse!("<<if $condition_true>>"), None);
+	assert_matches!(parse!("<<elseif false>>"), None);
+	assert_matches!(parse!("   \t<<else>>"), None);
+	assert_matches!(parse!("<<endif>>"), None);
+}

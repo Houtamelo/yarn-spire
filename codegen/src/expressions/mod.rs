@@ -4,7 +4,7 @@ pub mod yarn_ops;
 pub mod yarn_expr;
 pub mod built_in_calls;
 pub mod declaration_ty;
-mod custom_parser;
+pub mod custom_parser;
 
 use custom_parser::CustomExpr;
 use std::ops::Deref;

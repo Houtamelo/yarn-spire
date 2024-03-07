@@ -8,13 +8,13 @@ use crate::quoting::quotable_types::node::{IDNode, LinesMap};
 use anyhow::Result;
 use core_types::{default_storage, instruction, options, runtime, speech, title, var_trait};
 
-fn write_root(cfg: &YarnConfig, nodes: &[IDNode]) -> Result<()> {
+fn write_root(cfg: &YarnConfig) -> Result<()> {
 	let path =
 		cfg.destination_os_path.join("mod.rs");
 	let file =
 		get_or_create_file(&path, cfg.allow_overwrite)?;
 	let tokens =
-		core_types::tokens_root_module(cfg, nodes);
+		core_types::tokens_root_module(cfg);
 	return write_to_file(&path, file, tokens);
 }
 
@@ -116,7 +116,7 @@ pub fn write_all(config: &YarnConfig,
 				 nodes_mapped: &[(&IDNode, LinesMap)],
 				 var_declarations: &[VarDeclaration])
 				 -> Result<()> {
-	write_root(&config, nodes)?;
+	write_root(&config)?;
 	write_built_in_functions(&config)?;
 	write_command(&config, nodes_mapped)?;
 	write_instruction(&config)?;

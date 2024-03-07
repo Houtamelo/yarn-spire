@@ -5,7 +5,8 @@ use std::borrow::Cow;
 use serde::{Deserialize, Serialize};
 
 use crate::instruction::YarnYield;
-use crate::shared_internal::{Ch01_Awakening, Ch01_Awakening_Line, mouth_taste, narrator, NodeTitle, SpeechTrait, Storage};
+use crate::shared_internal::{Ch01_Awakening_Line, NodeTitle, SpeechTrait, Storage};
+use crate::shared_internal::vars::{mouth_taste, narrator};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Ch01_Awakening_Speech {
@@ -39,7 +40,7 @@ impl SpeechTrait for Ch01_Awakening_Speech {
 			Ch01_Awakening_Speech::branch_stamina_2 => 
 				YarnYield::Instruction(Ch01_Awakening_Line::main_6.into()),
 			Ch01_Awakening_Speech::branch_else_1 => {
-				storage.increment_visited(&NodeTitle::Ch01_Awakening(Ch01_Awakening));
+				storage.increment_visited(&NodeTitle::Ch01_Awakening);
 				YarnYield::Finished 
 			},
 			Ch01_Awakening_Speech::main_10 => 

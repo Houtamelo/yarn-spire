@@ -11,7 +11,6 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 		#![allow(unused)]
 		
 		use std::fmt::Debug;
-		use enum_dispatch::enum_dispatch;
 		use serde::{Deserialize, Serialize};
 		use $(&cfg.shared_qualified)::*;
 		
@@ -24,7 +23,6 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 			Never,
 		}
 		
-		#[enum_dispatch(NodeTitle)]
 		pub trait NodeTitleTrait {
 			fn tags(&self) -> &'static[&'static str];
 			fn tracking(&self) -> TrackingSetting;
@@ -34,18 +32,89 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 	}
 }
 
-fn tokens_enum(nodes: &[IDNode]) -> Tokens {
+fn tokens_enum(cfg: &YarnConfig,
+               nodes: &[IDNode])
+               -> Tokens {
 	let variants =
 		nodes.iter()
 		     .map(|node| {
 			     quote! { $(&node.metadata.title) }
 		     });
+	
+	let tags_impls =
+		nodes.iter()
+		     .map(|node| {
+			     let title = &node.metadata.title;
+			     quote! {
+			     	NodeTitle::$title =>{ 
+			     		$title.tags()
+				     }
+			     }
+		     });
+	
+	let tracking_impls =
+		nodes.iter()
+		     .map(|node| {
+			     let title = &node.metadata.title;
+			     quote! {
+			     	NodeTitle::$title => {
+			     		$title.tracking()
+				     }
+			     }
+		     });
+	
+	let custom_metadata_impls =
+		nodes.iter()
+		     .map(|node| {
+			     let title = &node.metadata.title;
+			     quote! {
+			     	NodeTitle::$title => {
+			     		$title.custom_metadata()
+				     }
+			     }
+		     });
+	
+	let start_impls =
+		nodes.iter()
+		     .map(|node| {
+			     let title = &node.metadata.title;
+			     quote! {
+			     	NodeTitle::$title => {
+					     $title.start(storage)
+				     }
+			     }
+		     });
 
 	quote! {
-		#[enum_dispatch]
 		#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 		pub enum NodeTitle {
 			$(SeparatedItems(variants, ",\n"))
+		}
+		
+		impl NodeTitleTrait for NodeTitle {
+			fn tags(&self) -> &'static [&'static str] {
+				return match self {
+					$(SeparatedItems(tags_impls, ",\n"))
+				};
+			}
+		
+			fn tracking(&self) -> TrackingSetting {
+				return match self {
+					$(SeparatedItems(tracking_impls, ",\n"))
+				};
+			}
+		
+			fn custom_metadata(&self) -> &'static [&'static str] {
+				return match self {
+					$(SeparatedItems(custom_metadata_impls, ",\n"))
+				};
+			}
+		
+			fn start(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield {
+				return match self {
+					$(SeparatedItems(start_impls, ",\n"))
+				};
+			}
 		}
 	}
 }
@@ -56,7 +125,7 @@ pub fn all_tokens(cfg: &YarnConfig,
 	let imports_and_trait = 
 		tokens_imports_and_trait(cfg);
 	let enum_tokens = 
-		tokens_enum(nodes);
+		tokens_enum(cfg, nodes);
 
 	quote! {
 		$imports_and_trait

@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use genco::prelude::quoted;
 use genco::prelude::rust::Tokens;
 use genco::quote;
@@ -6,7 +7,7 @@ use crate::quoting::util::SeparatedItems;
 use crate::quoting::quotable_types::line_ids::{IDFlow, IDOptionLine};
 use crate::quoting::quotable_types::enums::OptionLineEnum;
 use crate::quoting::quotable_types::enums;
-use crate::quoting::quotable_types::next::build_next_fn;
+use crate::quoting::quotable_types::advance::build_next_fn;
 use crate::quoting::quotable_types::node::{IDNode, LinesMap};
 use crate::quoting::quotable_types::scope::IDScope;
 
@@ -19,6 +20,7 @@ fn tokens_imports(cfg: &YarnConfig) -> Tokens {
 		use houtamelo_utils::prelude::*;
 		use $(&cfg.shared_qualified)::*;
 		use std::borrow::Cow;
+		use serde::{Deserialize, Serialize};
 	}
 }
 
@@ -32,17 +34,17 @@ fn tokens_enum(options: &[(&IDOptionLine, OptionLineEnum)],
 				line_enum.variant_name());
 
 	quote! {
-		#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+		#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 		pub enum $enum_name {
 			$(SeparatedItems(enum_variants, ",\n"))
 		}
 	}
 }
 
-fn insert_scope_next_fns<'a>(next_fns: &mut Vec<(&'a str, Tokens)>, 
-                             current_scope: &'a IDScope,
-                             next_scopes: &[&IDScope], 
-                             title: &str) {
+fn insert_scope_advance_fns<'a>(next_fns: &mut Vec<(&'a str, Tokens)>,
+                                current_scope: &'a IDScope,
+                                next_scopes: &[&IDScope],
+                                title: &str) {
 	let mut flows: Vec<&IDFlow> =
 		current_scope
 			.flows
@@ -65,23 +67,23 @@ fn insert_scope_next_fns<'a>(next_fns: &mut Vec<(&'a str, Tokens)>,
 					next_fns.push((line.line_id.as_str(), next_fn));
 
 					if let Some(option_scope) = maybe_scope {
-						insert_scope_next_fns(next_fns, option_scope, next_scopes, title);
+						insert_scope_advance_fns(next_fns, option_scope, next_scopes, title);
 					}
 				}
 			},
 			IDFlow::IfBranch(if_branch) => {
 				if let Some(if_scope) = &if_branch.if_.1 {
-					insert_scope_next_fns(next_fns, if_scope, next_scopes, title);
+					insert_scope_advance_fns(next_fns, if_scope, next_scopes, title);
 				}
 
 				for (_, maybe_scope) in if_branch.else_ifs.iter() {
 					if let Some(else_if_scope) = maybe_scope {
-						insert_scope_next_fns(next_fns, else_if_scope, next_scopes, title);
+						insert_scope_advance_fns(next_fns, else_if_scope, next_scopes, title);
 					}
 				}
 
 				if let Some((_, Some(else_scope))) = &if_branch.else_ {
-					insert_scope_next_fns(next_fns, else_scope, next_scopes, title);
+					insert_scope_advance_fns(next_fns, else_scope, next_scopes, title);
 				}
 			},
 			IDFlow::Flat(_) => {},
@@ -89,9 +91,9 @@ fn insert_scope_next_fns<'a>(next_fns: &mut Vec<(&'a str, Tokens)>,
 	}
 }
 
-fn all_next_fns<'a>(node: &'a IDNode,
-                    options: &'a [(&IDOptionLine, OptionLineEnum)])
-                    -> impl Iterator<Item = (&'a OptionLineEnum<'a>, Tokens)> {
+fn all_advance_fns<'a>(node: &'a IDNode,
+                       options: &'a [(&IDOptionLine, OptionLineEnum)])
+                       -> impl Iterator<Item = (&'a OptionLineEnum<'a>, Tokens)> {
 	let title = node.metadata.title.as_str();
 
 	let mut next_fns = Vec::new();
@@ -103,7 +105,7 @@ fn all_next_fns<'a>(node: &'a IDNode,
 
 	while scopes.len() > 0 {
 		let scope = scopes.remove(0);
-		insert_scope_next_fns(&mut next_fns, scope, &scopes, title);
+		insert_scope_advance_fns(&mut next_fns, scope, &scopes, title);
 	}
 
 	if next_fns.len() != options.len() {
@@ -133,8 +135,8 @@ fn tokens_trait_impl<'a>(cfg: &YarnConfig,
                          node: &IDNode,
                          enum_name: &str)
                          -> Tokens {
-	let next_fns =
-		all_next_fns(node, options)
+	let advance_fns =
+		all_advance_fns(node, options)
 			.map(|(line_enum, tokens)| {
 				quote! {
 					$(line_enum.qualified()) => { 
@@ -203,12 +205,34 @@ fn tokens_trait_impl<'a>(cfg: &YarnConfig,
 					},
 				}
 			});
+	
+	let forks =
+		options
+			.iter()
+			.map(|(option, line_enum)| {
+				quote! {
+					$(line_enum.qualified()) => { 
+						$(option.fork_qualified.deref())
+					},
+				}
+			});
+	
+	let indexes =
+		options
+			.iter()
+			.map(|(option, line_enum)| {
+				quote! {
+					$(line_enum.qualified()) => { 
+						$(option.index_on_fork)
+					},
+				}
+			});
 
 	quote! {
 		impl OptionLineTrait for $enum_name {
-			fn next(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield {
+			fn advance(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield {
 				match self {
-					$(SeparatedItems(next_fns, "\n"))
+					$(SeparatedItems(advance_fns, "\n"))
 				}
 			}
 			
@@ -233,6 +257,18 @@ fn tokens_trait_impl<'a>(cfg: &YarnConfig,
 			fn is_available(&self, storage: &$(&cfg.storage_direct)) -> Option<bool> {
 				return match self {
 					$(SeparatedItems(conditions, "\n"))
+				};
+			}
+			
+			fn fork(&self) -> OptionsFork {
+				return match self {
+					$(SeparatedItems(forks, "\n"))
+				};
+			}
+			
+			fn index_on_fork(&self) -> usize {
+				return match self {
+					$(SeparatedItems(indexes, "\n"))
 				};
 			}
 		}

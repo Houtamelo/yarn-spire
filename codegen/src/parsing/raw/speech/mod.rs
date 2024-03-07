@@ -1,6 +1,7 @@
 #[cfg(test)] mod tests;
 
 use std::iter::Peekable;
+use std::mem;
 use std::str::Chars;
 use anyhow::{Result, anyhow};
 use genco::lang::Rust;
@@ -81,11 +82,20 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 						state = State::Arg {
 							char_state: CharState::Std,
 							previous_char: next,
-							nesting: vec!['{'],
-							sum: String::from('{'),
+							nesting: vec![],
+							sum: String::new(),
 						};
 
 						literal.push_str("{}");
+					},
+					'}' => {
+						return Err(anyhow!(
+							"Unexpected closing delimiter `}}` when parsing literal.\n\
+							 Built so far: \n\
+							 \tLiteral: `{literal}`\n\
+							 \tArguments: `{args:?}`\n\n\
+							 Help: The closing delimiter `}}` does not match any opening delimiter `{{`.\n\
+							 Help: If you want to use '{{', '}}' inside a string literal, escape it with a backslash (`\\`)."));
 					},
 					'#' => {
 						let built_metadata =
@@ -101,16 +111,20 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 					},
 					':' => {
 						if speaker.is_none()
-							&& literal.len() > 0
-							&& literal.chars().none(char::is_whitespace)
-							&& args.is_empty() {
-							speaker = Some(Speaker::Literal(literal));
-							literal = String::new();
+						&& !literal.is_empty()
+						&& literal.trim().chars().none(char::is_whitespace)
+						&& args.is_empty() {
+							let mut speaker_str = mem::take(&mut literal);
+							speaker_str.trim_in_place();
+							speaker = Some(Speaker::Literal(speaker_str));
 						} else if speaker.is_none()
-							&& literal.is_empty()
-							&& args.len() == 1 {
+							&& literal.trim() == "{}"
+							&& args.len() == 1 
+						{
+							literal.clear();
 							
-							let unparsed_speaker = args.remove(0);
+							let unparsed_speaker = 
+								args.remove(0);
 							let expr =
 								parse_yarn_expr(&unparsed_speaker)
 									.map_err(|err| anyhow!(
@@ -180,8 +194,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Sp
 									 Help: if you want to use '{{', '}}' inside a string literal, escape it with a backslash (`\\`)."));
 							}
 						} else if un_nest == '}' {
-							sum.push('}');
-							args.push(std::mem::take(sum));
+							args.push(mem::take(sum));
 							state = State::Lit { ignore_next: false };
 						} else {
 							return Err(anyhow!(
@@ -370,8 +383,7 @@ impl ParseRawYarn for Speech {
 					"Could not parse line as `Speech`.\n\
 					 Remaining line: `{}`\n\
 					 Error: `{err:?}`"
-					, chars.collect::<String>()
-				)));
+					, chars.collect::<String>())));
 		
 		return Some(Ok(Content::Speech(speech)));
 	}

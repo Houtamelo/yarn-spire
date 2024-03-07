@@ -54,6 +54,7 @@ pub enum YarnBinaryOp {
 	Eq, Ne,
 	Lt, Le,
 	Gt, Ge,
+	BitXor, BitAnd, BitOr,
 }
 
 impl YarnBinaryOp {
@@ -72,21 +73,12 @@ impl YarnBinaryOp {
 			SynBinOp::Le (_) => Ok(YarnBinaryOp::Le),
 			SynBinOp::Gt (_) => Ok(YarnBinaryOp::Gt), 
 			SynBinOp::Ge (_) => Ok(YarnBinaryOp::Ge),
+			SynBinOp::BitAnd(_) => Ok(YarnBinaryOp::BitAnd),
+			SynBinOp::BitOr (_) => Ok(YarnBinaryOp::BitOr),
+			SynBinOp::BitXor(_) => Ok(YarnBinaryOp::BitXor),
 			invalid_op => {
 				Err(anyhow!("Invalid binary operator: {invalid_op:?}"))
 			},
-		};
-	}
-
-	pub(super) fn resolve(self) -> &'static str {
-		return match self {
-			YarnBinaryOp::Add => "+" , YarnBinaryOp::Sub => "-" ,
-			YarnBinaryOp::Mul => "*" ,
-			YarnBinaryOp::Div => "/" , YarnBinaryOp::Rem => "%" ,
-			YarnBinaryOp::And => "&&", YarnBinaryOp::Or  => "||",
-			YarnBinaryOp::Eq  => "==", YarnBinaryOp::Ne  => "!=",
-			YarnBinaryOp::Lt  => "<" , YarnBinaryOp::Le  => "<=",
-			YarnBinaryOp::Gt  => ">" , YarnBinaryOp::Ge  => ">=",
 		};
 	}
 }
@@ -132,6 +124,15 @@ impl FormatInto<Rust> for &YarnBinaryOp {
 			},
 			YarnBinaryOp::Ge => {
 				quote_in!(*tokens => >=);
+			},
+			YarnBinaryOp::BitXor => {
+				quote_in!(*tokens => ^);
+			},
+			YarnBinaryOp::BitAnd => {
+				quote_in!(*tokens => &);
+			},
+			YarnBinaryOp::BitOr => {
+				quote_in!(*tokens => |);
 			},
 		}
 	}

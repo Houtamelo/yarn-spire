@@ -11,13 +11,14 @@ pub fn all_tokens(cfg: &YarnConfig) -> Tokens {
 		use serde::{Deserialize, Serialize};
 		use $(&cfg.shared_qualified)::*;
 		
-		#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+		#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 		pub enum Instruction {
 			Speech(SpeechLine),
 			Command(CommandLine),
 			Options(OptionsFork),
 		}
 		
+		#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 		pub enum YarnYield {
 			Instruction(Instruction),
 			Finished,

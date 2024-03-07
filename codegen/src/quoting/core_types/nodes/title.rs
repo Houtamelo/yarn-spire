@@ -21,7 +21,6 @@ fn tokens_imports(cfg: &YarnConfig) -> Tokens {
 		use std::borrow::Cow;
 		use houtamelo_utils::prelude::*;
 		use serde::{Deserialize, Serialize};
-		use strum::IntoStaticStr;
 		use $(&cfg.shared_qualified)::*;
 	}
 }
@@ -31,13 +30,21 @@ fn tokens_title_trait_impl(cfg: &YarnConfig,
                            inferred_tracking_setting: TrackingSetting)
                            -> Tokens {
 	let metadata = &node.metadata;
-	let title = &metadata.title;
+	
+	let title =
+		&metadata.title;
 	
 	let tags = 
-		metadata.tags.iter().map(quoted);
+		metadata
+			.tags
+			.iter()
+			.map(quoted);
 	
 	let customs = 
-		metadata.customs.iter().map(quoted);
+		metadata
+			.customs
+			.iter()
+			.map(quoted);
 	
 	let tracking_setting =
 		match inferred_tracking_setting {
@@ -46,7 +53,7 @@ fn tokens_title_trait_impl(cfg: &YarnConfig,
 		};
 
 	let tokens_first_line = 
-		quotable_types::next::build_next_fn(&[],&[], &node.scopes, &node.metadata.title);
+		quotable_types::advance::build_next_fn(&[],&[], &node.scopes, &node.metadata.title);
 	
 	quote! {
 		pub static TAGS: &'static[&'static str] = &[

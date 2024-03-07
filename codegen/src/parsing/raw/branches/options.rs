@@ -1,6 +1,7 @@
 use std::iter::Peekable;
 use std::str::Chars;
 use anyhow::{Result, anyhow};
+use trim_in_place::TrimInPlace;
 use expressions::parse_yarn_expr;
 use crate::{expressions, LineNumber};
 use crate::expressions::yarn_expr::YarnExpr;
@@ -44,7 +45,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 	let mut literal = String::new();
 	let mut args: Vec<String> = vec![];
 	let mut if_condition = None;
-	let mut metadata = None;
+	let mut metadata_option = None;
 
 	while let Some(next) = chars.next() {
 		match &mut state {
@@ -61,11 +62,20 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 						state = State::Arg {
 							char_state: CharState::Std,
 							previous_char: next,
-							nesting: vec!['{'],
-							sum: String::from('{'),
+							nesting: vec![],
+							sum: String::new(),
 						};
 
 						literal.push_str("{}");
+					},
+					'}' => {
+						return Err(anyhow!(
+							"Unexpected closing delimiter `}}` when parsing literal.\n\
+							 Built so far: \n\
+							 \tLiteral: `{literal}`\n\
+							 \tArguments: `{args:?}`\n\n\
+							 Help: The closing delimiter `}}` does not match any opening delimiter `{{`.\n\
+							 Help: If you want to use '{{', '}}' inside a string literal, escape it with a backslash (`\\`)."));
 					},
 					'<' => {
 						let Some('<') = chars.peek() 
@@ -73,9 +83,14 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 								literal.push('<');
 								continue;
 							};
+
+						let remaining =
+							chars.clone()
+							     .skip(1)
+							     .collect::<String>();
 						
-						let remaining = chars.clone().skip(1).collect::<String>();
-						let mut remaining_str = remaining.as_str().trim();
+						let mut remaining_str = 
+							remaining.as_str().trim();
 						
 						if strip_start_then_trim!(remaining_str, "if") { // if [condition]>>
 							let remaining_chars = 
@@ -87,7 +102,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 								parse_if_condition_and_metadata(remaining_chars)?;
 							
 							if_condition = Some(result.0);
-							metadata = result.1;
+							metadata_option = result.1;
 							break;
 						} else {
 							return Err(anyhow!(
@@ -102,8 +117,8 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 								.chain(chars.by_ref())
 								.collect::<String>();
 
-						if built_metadata.len() > 0 {
-							metadata = Some(built_metadata)
+						if built_metadata.len() > 1 {
+							metadata_option = Some(built_metadata)
 						}
 
 						break;
@@ -135,8 +150,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 								sum.push(un_nest);
 							} else {
 								return Err(anyhow!(
-									"Could not parse argument.\n\
-									 Error: Invalid closing delimiter `{un_nest}`\n\
+									"Invalid closing delimiter `{un_nest}` when parsing argument.\n\
 									 Argument: `{sum}`\n\
 									 Nesting: `{nesting:?}`\n\
 									 Built so far: \n\
@@ -146,7 +160,6 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 									 Help: if you want to use '{{', '}}' or '#' as a literal, escape it with a backslash (`\\`)."));
 							}
 						} else if un_nest == '}' {
-							sum.push('}');
 							args.push(std::mem::take(sum));
 							state = State::Lit { ignore_next: false };
 						} else {
@@ -207,21 +220,23 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 				 Error: `{err:?}`\n\
 		         Literal: `{literal}`\n\
 				 If Condition: `{if_condition:?}`\n\
-		         Metadata: `{metadata:?}`")
+		         Metadata: `{metadata_option:?}`")
 			)?;
+	
+	literal.trim_in_place();
 
 	if literal.is_empty()
-		&& args_expr.is_empty() {
+	&& args_expr.is_empty() {
 		return Err(anyhow!(
 			"Both literal and arguments are empty.\n\
 			 Built so far: \n\
 			 \tLiteral: `{literal}`\n\
 			 \tArguments: `{args:?}`\n\
 			 \tIf Condition: `{if_condition:?}`\n\
-			 \tMetadata: `{metadata:?}`\n"));
+			 \tMetadata: `{metadata_option:?}`\n"));
 	}
 
-	let Some(after_hash) = &metadata
+	let Some(metadata) = &metadata_option
 		else {
 			return Ok(OptionLine {
 				line_number,
@@ -233,7 +248,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 		};
 
 	let mut tags: Vec<String> =
-		after_hash
+		metadata
 			.split('#')
 			.filter_map(|tag| {
 				let trimmed = tag.trim();
@@ -248,7 +263,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 		tags.extract_if(|tag| {
 			let mut temp = tag.as_str();
 			if strip_start_then_trim!(temp, "line")
-				&& strip_start_then_trim!(temp, ":") {
+			&& strip_start_then_trim!(temp, ":") {
 				*tag = temp.to_string();
 				true
 			} else {
@@ -262,7 +277,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 			line_id: None,
 			text: (literal, args_expr),
 			if_condition,
-			tags: vec![],
+			tags,
 		}),
 		1 => Ok(OptionLine {
 			line_number,
@@ -284,7 +299,6 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 	};
 }
 
-// Reference arguments are just for error messages.
 fn build_args(unparsed_args: Vec<String>) -> Result<Vec<YarnExpr>> {
 	let exprs: Vec<YarnExpr> =
 		unparsed_args
@@ -299,8 +313,7 @@ fn build_args(unparsed_args: Vec<String>) -> Result<Vec<YarnExpr>> {
 	return Ok(exprs);
 }
 
-fn parse_if_condition_and_metadata(mut chars: Peekable<Chars>)
-                                   -> Result<(YarnExpr, Option<String>)> {
+fn parse_if_condition_and_metadata(mut chars: Peekable<Chars>) -> Result<(YarnExpr, Option<String>)> {
 	let mut char_state = CharState::Std;
 	let mut nesting: Vec<char> = Vec::new();
 	let mut sum = String::new();
@@ -438,7 +451,10 @@ impl ParseRawYarn for OptionLine {
 		
 		if strip_start_then_trim!(line, "<-") {
 			return if line.is_empty() {
-				Some(Ok(Content::EndOptions(EndOptions { line_number })))
+				Some(Ok(Content::EndOptions(
+					EndOptions {
+						line_number
+					})))
 			} else {
 				Some(Err(anyhow!(
 					"Could not parse `EndOptions`(`<-`).\n\
@@ -457,12 +473,14 @@ impl ParseRawYarn for OptionLine {
 				.peekable();
 
 		let choice_option =
-			return_if_err!(parse_line(&mut chars, line_number)
-				.map_err(|err| anyhow!(
-					"Could not parse line as `ChoiceOption`.\n\
-					 Error: `{err:?}`\n\
-					 Remaining line: `{}`"
-					, chars.collect::<String>())));
+			return_if_err!(
+				parse_line(&mut chars, line_number)
+					.map_err(|err| anyhow!(
+						"Could not parse line as `ChoiceOption`.\n\
+						 Error: `{err:?}`\n\
+						 Remaining line: `{}`"
+						, chars.collect::<String>()))
+			);
 		
 		return Some(Ok(Content::OptionLine(choice_option)));
 	}

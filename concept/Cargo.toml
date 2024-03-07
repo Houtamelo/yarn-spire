@@ -13,4 +13,7 @@ thiserror = "1.0"
 enum_dispatch = "0.3"
 strum = { version = "0.26", features = ["derive"] }
 rand = { version = "0.8", features = ["std", "getrandom", "std_rng"], optional = true }
-rand_xoshiro = { version = "0.6", features = ["serde1"] }
+rand_xoshiro = { version = "0.6", features = ["serde1"], optional = true }
+
+[features]
+default = ["rand", "rand_xoshiro"]

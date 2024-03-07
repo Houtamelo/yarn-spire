@@ -16,7 +16,7 @@ pub enum SpeechLine {
 }
 
 #[enum_dispatch(SpeechLine)]
-pub(crate) trait SpeechTrait {
+pub trait SpeechTrait {
 	fn next(&self, storage: &mut Storage) -> YarnYield;
 
 	/// The line's unique identifier, for more, 

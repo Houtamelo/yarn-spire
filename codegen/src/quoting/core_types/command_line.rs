@@ -17,8 +17,10 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 		
 		#[enum_dispatch(CommandLine)]
 		pub trait CommandLineTrait {
-			fn next(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
+			fn advance(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
+			
 			fn line_id(&self) -> &'static str;
+			
 			fn command(&self, storage: &$(&cfg.storage_direct)) -> $(&cfg.command_direct);
 		}
 	}

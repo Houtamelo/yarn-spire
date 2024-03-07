@@ -50,6 +50,104 @@ fn find_yarn_files(relative_path: &str,
 	return Ok(files);
 }
 
+enum State {
+	OutsideLiteral,
+	OutsideLiteralIgnoreNext,
+	InsideLiteral,
+	InsideLiteralIgnoreNext,
+}
+
+fn filter_comments(line: &mut String) {
+	let mut state = 
+		State::OutsideLiteral;
+	
+	let mut iter = 
+		line.char_indices()
+			.peekable();
+	
+	while let Some((index, ch)) = iter.next() {
+		match state {
+			State::InsideLiteral => {
+				match ch {
+					'\\' => {
+						state = State::InsideLiteralIgnoreNext;
+					}
+					'\"' => {
+						state = State::OutsideLiteral;
+					}
+					_ => {}
+				}
+			}
+			State::InsideLiteralIgnoreNext => {
+				state = State::InsideLiteral;
+			}
+			State::OutsideLiteral => {
+				match ch {
+					'\\' => {
+						state = State::OutsideLiteralIgnoreNext;
+					}
+					'\"' => {
+						state = State::InsideLiteral;
+					}
+					'/' => {
+						if iter.next_if(|(_, ch)| *ch == '/').is_some() {
+							line.truncate(index);
+							return;
+						}
+					}
+					_ => {}
+				}
+			}
+			State::OutsideLiteralIgnoreNext => {
+				state = State::OutsideLiteral;
+			}
+		}
+	}
+}
+
+#[test]
+fn test_filter() {
+	use pretty_assertions::{assert_eq};
+	macro_rules! assert_filter {
+	    ($input: literal, $expect: literal) => {
+		    let mut input = $input.to_string();
+		    filter_comments(&mut input);
+		    assert_eq!(&input, $expect);
+	    };
+	}
+	
+	assert_filter!(
+		"//", 
+		"");
+	assert_filter!(
+		"Normal line but // ignore these", 
+		"Normal line but ");
+	assert_filter!(
+		"Normal line but // ignore these\n", 
+		"Normal line but ");
+	assert_filter!(
+		"\\/\\/", 
+		"\\/\\/");
+	assert_filter!(
+		"Line with some backslashes \\/\\/", 
+		"Line with some backslashes \\/\\/");
+	assert_filter!(
+		"Speaker: Line with some backslashes \\/\\/ but real comments // here",
+		"Speaker: Line with some backslashes \\/\\/ but real comments ");
+	assert_filter!(
+		"<<if $condition>>// comments ",
+		"<<if $condition>>");
+	assert_filter!(
+		"-> Option line but //comments",
+		"-> Option line but ");
+	assert_filter!(
+		"Hello there, \"Comments // inside literals should be ignored\"",
+		"Hello there, \"Comments // inside literals should be ignored\"");
+	assert_filter!(
+		"Hello there, \"Comments // inside literals should be ignored\" // but outside shouldn't",
+		"Hello there, \"Comments // inside literals should be ignored\" ");
+}
+
 fn read_lines(file: File, path: PathBuf) -> Result<YarnFile> {
 	let decoded_file = 
 		DecodeReaderBytesBuilder::new()
@@ -75,12 +173,9 @@ fn read_lines(file: File, path: PathBuf) -> Result<YarnFile> {
 		source_lines
 			.into_iter()
 			.filter_map(|(line_number, mut text)| {
-				let comment_start = text.find("//");
-				if let Some(start) = comment_start {
-					text.truncate(start);
-				}
-
+				filter_comments(&mut text);
 				text.trim_end_in_place();
+				text.shrink_to_fit();
 
 				if text.is_empty() || text.chars().all(char::is_whitespace) {
 					None

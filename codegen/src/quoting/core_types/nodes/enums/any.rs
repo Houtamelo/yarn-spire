@@ -71,7 +71,7 @@ fn tokens_from_impl(lines_map: &LinesMap,
 
 	let from_options_fork =
 		lines_map
-			.commands
+			.options_forks
 			.iter()
 			.map(|(_, line_enum)|
 				quote! { 

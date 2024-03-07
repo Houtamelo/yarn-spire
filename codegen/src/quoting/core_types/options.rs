@@ -24,12 +24,12 @@ fn tokens_traits_and_imports(cfg: &YarnConfig) -> Tokens {
 		
 		#[enum_dispatch(OptionLine)]
 		pub trait OptionLineTrait {
-			fn next(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
+			fn advance(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
 		
 			$(Comments([
 				"The line's unique identifier, if specified, for more, \n\
 				 see [metadata#line](https://docs.yarnspinner.dev/getting-started/writing-in-yarn/tags-metadata#line)"]))
-			fn line_id(&self) -> Option<&'static str>;
+			fn line_id(&self) -> &'static str;
 
 			$(Comments([
 				r#"The list of tags this line has, if any."#,
@@ -66,6 +66,10 @@ fn tokens_traits_and_imports(cfg: &YarnConfig) -> Tokens {
 				r#" YarnSpinner will not forbid the player from picking an option even if it has a condition evaluated to `false`."#,
 				r#"- The `[condition]` argument can be any valid expression in the YarnSpinner syntax (`{5 + 3 > 8}`, `$player_awake and $gold > 10`, ...)"#]))
 			fn is_available(&self, storage: &$(&cfg.storage_direct)) -> Option<bool>;
+			
+			fn fork(&self) -> OptionsFork;
+			
+			fn index_on_fork(&self) -> usize;
 		}
 	}
 }

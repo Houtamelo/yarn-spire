@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::instruction::YarnYield;
 use crate::options::OptionLineTrait;
-use crate::shared_internal::{Ch01_Awakening_Line, ethel_awake, Storage};
+use crate::shared_internal::{Ch01_Awakening_Line, Storage};
+use crate::shared_internal::vars::ethel_awake;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Ch01_Awakening_OptionLine {

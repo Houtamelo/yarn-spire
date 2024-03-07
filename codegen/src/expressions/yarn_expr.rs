@@ -208,6 +208,24 @@ impl YarnExpr {
 			}
 		};
 	}
+	
+	pub fn open(self) -> Self {
+		return match self {
+			YarnExpr::Parenthesis(inner) => {
+				inner.open()
+			}
+			already_open @ (| YarnExpr::Lit(_)
+			| YarnExpr::GetVar(_) 
+			| YarnExpr::UnaryOp { .. } 
+			| YarnExpr::BinaryOp { .. } 
+			| YarnExpr::CustomFunctionCall { .. }
+			| YarnExpr::BuiltInFunctionCall(_) 
+			| YarnExpr::Identifier(_) 
+			| YarnExpr::Cast { .. }) => {
+				already_open
+			}
+		};
+	}
 }
 
 impl FormatInto<Rust> for &YarnExpr {

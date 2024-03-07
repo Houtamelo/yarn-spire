@@ -12,3 +12,5 @@ cd tests
 
 START /B /wait "generating_code" yarn_spire_codegen.exe
 
+pause
+

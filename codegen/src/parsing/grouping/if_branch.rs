@@ -5,14 +5,14 @@ use scope::read_next_scope;
 use crate::Indent;
 use crate::parsing::grouping::scope;
 use crate::parsing::grouping::scope::YarnScope;
-use crate::parsing::raw::branches::if_statement::{ElseIfStruct, ElseStruct, IfStruct};
+use crate::parsing::raw::branches::if_statement::{ElseIf_, Else_, If_};
 use crate::parsing::raw::{Content, RawLine};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IfBranch {
-	pub if_: (IfStruct, Option<Box<YarnScope>>),
-	pub else_ifs: Vec<(ElseIfStruct, Option<Box<YarnScope>>)>,
-	pub else_: Option<(ElseStruct, Option<Box<YarnScope>>)>,
+	pub if_: (If_, Option<Box<YarnScope>>),
+	pub else_ifs: Vec<(ElseIf_, Option<Box<YarnScope>>)>,
+	pub else_: Option<(Else_, Option<Box<YarnScope>>)>,
 }
 
 impl IfBranch {
@@ -39,7 +39,7 @@ impl IfBranch {
 			.flatten();
 	}
 
-	fn add_elseif(&mut self, else_if: ElseIfStruct,
+	fn add_elseif(&mut self, else_if: ElseIf_,
 	              scope_option: Option<Box<YarnScope>>) -> Result<()> {
 		if let (Some(expected), Some(found)) 
 			= (self.branches_indent(), scope_option.as_ref().map(|scope| scope.indent()))
@@ -57,7 +57,7 @@ impl IfBranch {
 		Ok(())
 	}
 
-	fn add_else(&mut self, else_: ElseStruct, 
+	fn add_else(&mut self, else_: Else_,
 	            scope_option: Option<Box<YarnScope>>) -> Result<()> {
 		if let (Some(expected), Some(found))
 			= (self.branches_indent(), scope_option.as_ref().map(|scope| scope.indent()))
@@ -84,15 +84,15 @@ impl IfBranch {
 		};
 	}
 
-	pub fn build(parent_indent: Indent, if_line: IfStruct,
+	pub fn build(parent_indent: Indent, if_line: If_,
 	             lines_iter: &mut Peekable<IntoIter<RawLine>>) -> Result<IfBranch> {
 		let if_scope = 
 			read_next_scope(parent_indent, lines_iter)
 				.map_err(|err| anyhow!(
 					"Could not build `if`'s child scope.\n\
 					 Fork data: `{if_line:?}`\n\
-					 Error: {err}"
-				))?;
+					 Error: {err}")
+				)?;
 		
 		let mut if_branch =
 			IfBranch {
@@ -121,8 +121,7 @@ impl IfBranch {
 		{
 			let Some(next_line) = lines_iter.next()
 				else { return Err(anyhow!(
-					"Could not build branch(`<<if`, `<<elseif`, `<<else`, `<<endif`).\n\
-					 Error: file ended before branch was closed.\n\
+					"Node ended before branch was closed, expected `<<endif>>`.\n\
 					 Unclosed branch started at: `{:?}`\n\n\
 					 Help: Branches are started with `<<if [condition]>>`, then ended with `<<endif>>`."
 					, if_branch.if_))
@@ -130,11 +129,11 @@ impl IfBranch {
 
 			if next_line.indent != parent_indent {
 				return Err(anyhow!(
-					"Could not build branch(`<<if`, `<<elseif`, `<<else`, `<<endif`).\n\
-					 Error: Indentation mismatch in fork, expected: {parent_indent}, got: {}\n\n\
+					"Indentation mismatch in `<<else>>` or `<<endif>>`, expected: {parent_indent}, got: {}\n\
+					 At line `{:?}`\n\n\
 					 Help: Indentation is calculated by: [space + tabs * 4]\n\
 					 Help: Every fork(`<<if`, `<<elseif`, `<<else`) needs to have the same indentation."
-					, next_line.indent));
+					, next_line.indent, next_line.content));
 			}
 
 			match next_line.content {
@@ -146,9 +145,8 @@ impl IfBranch {
 				| Content::If(_)
 				| Content::ElseIf(_)) => {
 					return Err(anyhow!(
-						"Could not build branch(`<<if`, `<<elseif`, `<<else`, `<<endif`).\n\
-						 Error: Expected `<<else>>` or `<<endif>>`\n\
-						 Found: {:?}\n\n\
+						"Expected `<<else>>` or `<<endif>>`\n\
+						 Got: {:?}\n\n\
 						 Help: Branches are started with `<<if [condition]>>`, then closed with `<<endif>>`.\n\
 						 Help: As long as a Branch is open, parallel(same indentation, not necessarily adjacent) lines must be \
 						 either `<<elseif [condition]>>`, `<<else>>` or `<<endif>>`.\n\
@@ -176,8 +174,7 @@ impl IfBranch {
 		{
 			let Some(next_line) = lines_iter.next()
 				else { return Err(anyhow!(
-					"Could not build branch(`<<if`, `<<elseif`, `<<else`, `<<endif`).\n\
-					 Error: file ended before branch was closed.\n\
+					"Node ended before branch was closed, expected `<<endif>>`.\n\
 					 Unclosed branch started at: `{:?}`\n\n\
 					 Help: Branches are started with `<<if [condition]>>`, then ended with `<<endif>>`."
 					, if_branch.if_))
@@ -185,8 +182,7 @@ impl IfBranch {
 
 			if next_line.indent != parent_indent {
 				return Err(anyhow!(
-					"Could not build branch(`<<if`, `<<elseif`, `<<else`, `<<endif`).\n\
-					 Error: Indentation mismatch in fork, expected: {parent_indent}, got: {}\n\n\
+					"Indentation mismatch in `<<endif>>`, expected: {parent_indent}, got: {}\n\n\
 					 Help: Indentation is calculated by: [space + tabs * 4]\n\
 					 Help: Every fork(`<<if`, `<<elseif`, `<<else`) needs to have the same indentation."
 					, next_line.indent));
@@ -199,26 +195,16 @@ impl IfBranch {
 				| Content::OptionLine(_)
 				| Content::EndOptions(_)
 				| Content::If(_)
-				| Content::ElseIf(_)) => {
+				| Content::ElseIf(_)
+				| Content::Else(_)) => {
 					Err(anyhow!(
-						"Could not build branch(`<<if`, `<<elseif`, `<<else`, `<<endif`).\n\
-						 Error: Expected `<<endif>>`\n\
-						 Found: {:?}\n\n\
+						"Expected `<<endif>>`\n\
+						 Got: {:?}\n\n\
 						 Help: Branches are started with `<<if [condition]>>`, then closed with `<<endif>>`.\n\
 						 Help: As long as a Branch is open, parallel(same indentation, not necessarily adjacent) lines must be \
 						 either `<<elseif [condition]>>`, `<<else>>` or `<<endif>>`.\n\
 						 Help: To close a branch, use `<<endif>>`."
 						, invalid_content))
-				},
-				Content::Else(_) => {
-					Err(anyhow!(
-						"Could not build branch(`<<if`, `<<elseif`, `<<else`, `<<endif`).\n\
-						 Error: Expected `<<endif>>`\n\
-						 Found: `<<else>>`\n\n\
-						 Help: Branches are started with `<<if [condition]>>`, then closed with `<<endif>>`.\n\
-						 Help: As long as a Branch is open, parallel(same indentation, not necessarily adjacent) lines must be \
-						 either `<<elseif [condition]>>`, `<<else>>` or `<<endif>>`.\n\
-						 Help: To close a branch, use `<<endif>>`."))
 				},
 				Content::EndIf(_) => {
 					Ok(if_branch)

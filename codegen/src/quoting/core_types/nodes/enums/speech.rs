@@ -6,7 +6,7 @@ use crate::quoting::util::SeparatedItems;
 use crate::quoting::quotable_types::line_ids::{IDFlatLine, IDFlow, IDSpeech};
 use crate::quoting::quotable_types::enums::LineEnum;
 use crate::quoting::quotable_types::enums;
-use crate::quoting::quotable_types::next::build_next_fn;
+use crate::quoting::quotable_types::advance::build_next_fn;
 use crate::quoting::quotable_types::node::{IDNode, LinesMap};
 use crate::quoting::quotable_types::scope::IDScope;
 
@@ -40,10 +40,10 @@ fn tokens_enum(speeches: &[(&IDSpeech, LineEnum)],
 	}
 }
 
-fn insert_scope_next_fns<'a>(next_fns: &mut Vec<(&'a str, Tokens)>,
-                             current_scope: &'a IDScope, 
-                             next_scopes: &[&IDScope], 
-                             title: &str) {
+fn insert_scope_advance_fns<'a>(next_fns: &mut Vec<(&'a str, Tokens)>,
+                                current_scope: &'a IDScope,
+                                next_scopes: &[&IDScope],
+                                title: &str) {
 	let mut flows: Vec<&IDFlow> =
 		current_scope
 			.flows
@@ -78,32 +78,32 @@ fn insert_scope_next_fns<'a>(next_fns: &mut Vec<(&'a str, Tokens)>,
 			IDFlow::OptionsFork(options_fork) => {
 				for (_, maybe_scope) in options_fork.options.iter() {
 					if let Some(option_scope) = maybe_scope {
-						insert_scope_next_fns(next_fns, option_scope, next_scopes, title);
+						insert_scope_advance_fns(next_fns, option_scope, next_scopes, title);
 					}
 				}
 			},
 			IDFlow::IfBranch(if_branch) => {
 				if let Some(if_scope) = &if_branch.if_.1 {
-					insert_scope_next_fns(next_fns, if_scope, next_scopes, title);
+					insert_scope_advance_fns(next_fns, if_scope, next_scopes, title);
 				}
 				
 				for (_, maybe_scope) in if_branch.else_ifs.iter() {
 					if let Some(else_if_scope) = maybe_scope {
-						insert_scope_next_fns(next_fns, else_if_scope, next_scopes, title);
+						insert_scope_advance_fns(next_fns, else_if_scope, next_scopes, title);
 					}
 				}
 				
 				if let Some((_, Some(else_scope))) = &if_branch.else_ {
-					insert_scope_next_fns(next_fns, else_scope, next_scopes, title);
+					insert_scope_advance_fns(next_fns, else_scope, next_scopes, title);
 				}
 			},
 		}
 	}
 }
 
-fn all_next_fns<'a>(speeches: &'a [(&IDSpeech, LineEnum)],
-                    node: &'a IDNode)
-                    -> impl Iterator<Item = (&'a LineEnum<'a>, Tokens)> {
+fn all_advance_fns<'a>(speeches: &'a [(&IDSpeech, LineEnum)],
+                       node: &'a IDNode)
+                       -> impl Iterator<Item = (&'a LineEnum<'a>, Tokens)> {
 	let title = node.metadata.title.as_str();
 	
 	let mut next_fns = Vec::new();
@@ -115,7 +115,7 @@ fn all_next_fns<'a>(speeches: &'a [(&IDSpeech, LineEnum)],
 	
 	while scopes.len() > 0 {
 		let scope = scopes.remove(0);
-		insert_scope_next_fns(&mut next_fns, scope, &scopes, title);
+		insert_scope_advance_fns(&mut next_fns, scope, &scopes, title);
 	}
 	
 	if next_fns.len() != speeches.len() {
@@ -145,8 +145,8 @@ fn tokens_trait_impl<'a>(cfg: &YarnConfig,
                          node: &IDNode,
                          enum_name: &str)
                          -> Tokens {
-	let next_fns = 
-		all_next_fns(speeches, node)
+	let advance_fns = 
+		all_advance_fns(speeches, node)
 			.map(|(line_enum, tokens)| {
 				quote! {
 					$(line_enum.typed_qualified()) => { 
@@ -219,9 +219,9 @@ fn tokens_trait_impl<'a>(cfg: &YarnConfig,
 	
 	quote! {
 		impl SpeechTrait for $enum_name {
-			fn next(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield {
+			fn advance(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield {
 				match self {
-					$(SeparatedItems(next_fns, "\n"))
+					$(SeparatedItems(advance_fns, "\n"))
 				}
 			}
 			

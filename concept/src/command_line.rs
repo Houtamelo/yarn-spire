@@ -24,3 +24,4 @@ pub(crate) trait CommandLineTrait {
 pub enum CommandLine {
 	Ch01_Awakening_Command,
 }
+

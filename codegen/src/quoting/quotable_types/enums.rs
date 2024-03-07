@@ -73,5 +73,5 @@ impl<'a> OptionLineEnum<'a> {
 }
 
 pub fn enum_type_title(node_title: &str) -> String {
-	format!("NodeTitle::{node_title}({node_title})")
+	format!("NodeTitle::{node_title}")
 }

@@ -6,7 +6,7 @@ use houtamelo_utils::prelude::CountOrMore;
 use scope::read_next_scope;
 use crate::parsing::grouping::scope;
 use crate::parsing::grouping::scope::YarnScope;
-use crate::parsing::raw::branches::choices::OptionLine;
+use crate::parsing::raw::branches::options::OptionLine;
 use crate::parsing::raw::{Content, RawLine};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,7 +61,7 @@ impl OptionsFork {
 
 		while let Some(Content::OptionLine(choice_option)) = 
 			lines_iter.next_if(|next| {
-				parent_indent == next.indent && matches!(next.content, Content::OptionLine(_))
+				next.indent == parent_indent && matches!(next.content, Content::OptionLine(_))
 			}).map(|next| next.content)
 		{
 			let next_option_scope =
@@ -76,6 +76,9 @@ impl OptionsFork {
 			
 			choices.add_option(choice_option, next_option_scope.map(Box::from))?;
 		}
+		
+		lines_iter.next_if(|next| 
+			next.indent == parent_indent && matches!(next.content, Content::EndOptions(_)));
 
 		return Ok(choices);
 	}

@@ -1,5 +1,7 @@
 use genco::lang::rust::Tokens;
 use genco::quote_in;
+use crate::expressions::yarn_expr::YarnExpr;
+use crate::parsing::raw::command::SetOperation;
 use crate::quoting::quotable_types::enums::LineEnum;
 use crate::quoting::quotable_types::line_ids::*;
 use crate::quoting::quotable_types::scope::IDScope;
@@ -14,7 +16,9 @@ impl NextFn for &IDFlatLine {
 	fn quote_next_fn(self, tokens: &mut Tokens, node_title: &str) -> bool {
 		match self {
 			IDFlatLine::Speech(IDSpeech { line_id, .. }) => {
-				tokens.line();
+				if !tokens.is_empty() {
+					tokens.push();
+				}
 				
 				let line_enum = LineEnum { 
 					node_title, 
@@ -26,7 +30,9 @@ impl NextFn for &IDFlatLine {
 				return true;
 			},
 			IDFlatLine::CustomCommand(IDCustomCommand { line_id, .. }) => {
-				tokens.line();
+				if !tokens.is_empty() {
+					tokens.push();
+				}
 				
 				let line_enum = LineEnum { 
 					node_title, 
@@ -39,29 +45,65 @@ impl NextFn for &IDFlatLine {
 			},
 			IDFlatLine::BuiltInCommand(built_in_command) => {
 				match built_in_command {
-					BuiltInCommand::Set { var_name, value, .. } => {
-						tokens.line();
-						quote_in!(*tokens => storage.set_var::<$var_name>($value););
+					BuiltInCommand::Set { 
+						var_name, op, value,
+						line_number: _, 
+					} => {
+						if !tokens.is_empty() {
+							tokens.push();
+						}
+						
+						match op {
+							SetOperation::Assign => {
+								quote_in!(*tokens => storage.set_var::<$var_name>($value););
+							}
+							SetOperation::Add => {
+								let get_var = &YarnExpr::GetVar(var_name.to_string());
+								quote_in!(*tokens => storage.set_var::<$var_name>($get_var + { $value }););
+							}
+							SetOperation::Sub => {
+								let get_var = &YarnExpr::GetVar(var_name.to_string());
+								quote_in!(*tokens => storage.set_var::<$var_name>($get_var - { $value }););
+							}
+							SetOperation::Mul => {
+								let get_var = &YarnExpr::GetVar(var_name.to_string());
+								quote_in!(*tokens => storage.set_var::<$var_name>($get_var * { $value }););
+							}
+							SetOperation::Div => {
+								let get_var = &YarnExpr::GetVar(var_name.to_string());
+								quote_in!(*tokens => storage.set_var::<$var_name>($get_var / { $value }););
+							}
+							SetOperation::Rem => {
+								let get_var = &YarnExpr::GetVar(var_name.to_string());
+								quote_in!(*tokens => storage.set_var::<$var_name>($get_var % { $value }););
+							}
+						}
+						
 						return false;
 					},
 					BuiltInCommand::Jump { node_destination_title, .. } => {
-						tokens.line();
-						quote_in!(*tokens => 
-							let current_title = NodeTitle::$node_title($node_title);
-							match current_title.tracking() {
+						if !tokens.is_empty() {
+							tokens.push();
+						}
+						
+						quote_in!(*tokens =>
+							match $node_title.tracking() {
 								TrackingSetting::Always => {
-									storage.increment_visited(&current_title);
+									storage.increment_visited(NodeTitle::$node_title);
 								},
 								TrackingSetting::Never => {},
 							}
 										
-							return NodeTitle::$node_destination_title($node_destination_title).start(storage);
+							return $node_destination_title.start(storage);
 						);
 
 						return true;
 					},
 					BuiltInCommand::Stop { .. } => {
-						tokens.line();
+						if !tokens.is_empty() {
+							tokens.push();
+						}
+						
 						quote_in!(*tokens => return YarnYield::Finished;);
 						return true;
 					},
@@ -73,7 +115,9 @@ impl NextFn for &IDFlatLine {
 
 impl NextFn for &IDOptionsFork {
 	fn quote_next_fn(self, tokens: &mut Tokens, node_title: &str) -> bool {
-		tokens.line();
+		if !tokens.is_empty() {
+			tokens.push();
+		}
 		
 		let line_enum = LineEnum { 
 			node_title, 
@@ -88,7 +132,9 @@ impl NextFn for &IDOptionsFork {
 
 impl NextFn for &IDIfBranch {
 	fn quote_next_fn(self, tokens: &mut Tokens, node_title: &str) -> bool {
-		tokens.line();
+		if !tokens.is_empty() { 
+			tokens.line();
+		}
 		
 		let mut all_returned = true;
 
@@ -99,7 +145,10 @@ impl NextFn for &IDIfBranch {
 					all_returned &= scope.quote_next_fn(&mut if_tokens, node_title);
 					if_tokens
 				},
-				None => Tokens::new(),
+				None => {
+					all_returned = false;
+					Tokens::new()
+				},
 			};
 		
 		quote_in!(*tokens => 
@@ -107,6 +156,7 @@ impl NextFn for &IDIfBranch {
 				$inside_if
 			}
 		);
+		tokens.append(" ");
 		
 		for (else_if, scope_option) in &self.else_ifs {
 			let inside_else_if = 
@@ -116,7 +166,10 @@ impl NextFn for &IDIfBranch {
 						all_returned &= scope.quote_next_fn(&mut else_if_tokens, node_title);
 						else_if_tokens
 					},
-					None => Tokens::new(),
+					None => {
+						all_returned = false;
+						Tokens::new()
+					},
 				};
 			
 			quote_in!(*tokens => 
@@ -124,6 +177,7 @@ impl NextFn for &IDIfBranch {
 					$inside_else_if
 				}
 			);
+			tokens.append(" ");
 		}
 		
 		if let Some((_, scope_option)) = &self.else_ {
@@ -134,7 +188,10 @@ impl NextFn for &IDIfBranch {
 						all_returned &= scope.quote_next_fn(&mut else_tokens, node_title);
 						else_tokens
 					},
-					None => Tokens::new(),
+					None => {
+						all_returned = false;
+						Tokens::new()
+					},
 				};
 			
 			quote_in!(*tokens => 
@@ -142,23 +199,13 @@ impl NextFn for &IDIfBranch {
 					$inside_else
 				}
 			);
+		} else {
+			all_returned = false;
 		}
 		
 		return all_returned;
 	}
 }
-
-fn flat_lines_next_fn<'a>(flat_lines: impl IntoIterator<Item = &'a IDFlatLine>, 
-                          tokens: &mut Tokens, node_title: &str) -> bool {
-	for line in flat_lines {
-		if line.quote_next_fn(tokens, node_title) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 
 fn flows_next_fn<'a>(flows: impl IntoIterator<Item = &'a IDFlow>, tokens: &mut Tokens, node_title: &str) -> bool {
 	for flow in flows {
@@ -214,8 +261,11 @@ pub fn build_next_fn<'a>(flats_after: impl IntoIterator<Item = &'a IDFlatLine>,
 			return tokens;
 		}
 	}
+
+	if !tokens.is_empty() {
+		tokens.push();
+	}
 	
-	tokens.line();
 	quote_in!(tokens => 
 		return YarnYield::Finished;
 	);

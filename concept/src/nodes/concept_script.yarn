@@ -30,8 +30,20 @@ You're not alone... #line:main_11
     You slip trying to get up. #right:ethel_worried #left:nema_tired #line:option_look_2
 -> Go to sleep #line:main_13 <<if $ethel_sleeping>>
     <<fade_in 1.>> #line:option_sleep_1
+
     <<sfx_wait "dressing">> #line:option_sleep_2
+
     <<jump Ch01_First_Fight>> #line:option_sleep_3
+
+    -> Option a
+        Do Stuff in a
+
+        More stuff here
+    -> Option B
+    <-
+
+
+<-
     
 {$Narrator}: And the scene ended here. #line:main_14
 ===

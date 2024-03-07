@@ -12,19 +12,8 @@ pub mod built_in_functions;
 use genco::lang::rust::Tokens;
 use genco::quote;
 use crate::config::YarnConfig;
-use crate::quoting::util::SeparatedItems;
-use crate::quoting::quotable_types::node::IDNode;
 
-pub fn tokens_root_module(cfg: &YarnConfig,
-                          nodes: &[IDNode])
-                          -> Tokens {
-	let nodes_exports = 
-		nodes.iter()
-		     .map(|node| {
-			     let title = &node.metadata.title;
-			     quote! { pub use super::nodes::$title::*; }
-		     });
-	
+pub fn tokens_root_module(cfg: &YarnConfig) -> Tokens {
 	let default_storage_mod= 
 		if cfg.generate_storage {
 			quote! { pub mod default_storage; }
@@ -52,7 +41,7 @@ pub fn tokens_root_module(cfg: &YarnConfig,
 		pub type YieldCounter = usize;
 		
 		#[allow(unused)]
-		pub(crate) mod shared_internal {
+		pub mod shared_internal {
 			pub use $(&cfg.storage_qualified);
 			pub use $(&cfg.command_qualified);
 			pub use $(&cfg.vars_qualified)::*;
@@ -66,13 +55,12 @@ pub fn tokens_root_module(cfg: &YarnConfig,
 			pub use super::instruction::*;
 			pub use super::runtime::*;
 			pub use super::title::*;
-			pub use super::nodes::*;
+			pub use super::nodes::exports::*;
 			pub use super::var_trait::*;
 			pub use super::speech::*;
 			pub use super::command_line::*;
 			pub use super::built_in_functions;
-			
-			$(SeparatedItems(nodes_exports, "\n"))
+			pub use super::nodes::*;
 		}
 	}
 }

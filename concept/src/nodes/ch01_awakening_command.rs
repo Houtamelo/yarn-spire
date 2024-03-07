@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::command_line::CommandLineTrait;
 use crate::instruction::YarnYield;
-use crate::shared_internal::{Ch01_Awakening, Ch01_Awakening_Line, Ch01_First_Fight, ethel_awake, ethel_stamina, mouth_taste, NodeTitle, NodeTitleTrait, Storage, YarnCommand};
+use crate::shared_internal::{Ch01_Awakening_Line, Ch01_First_Fight, NodeTitle, NodeTitleTrait, Storage, YarnCommand};
+use crate::shared_internal::vars::{ethel_awake, ethel_stamina, mouth_taste};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Ch01_Awakening_Command {
@@ -44,8 +45,8 @@ impl CommandLineTrait for Ch01_Awakening_Command {
 			Ch01_Awakening_Command::option_sleep_1 => 
 				YarnYield::Instruction(Ch01_Awakening_Line::option_sleep_2.into()),
 			Ch01_Awakening_Command::option_sleep_2 => {
-				storage.increment_visited(&NodeTitle::Ch01_Awakening(Ch01_Awakening));
-				NodeTitle::Ch01_First_Fight(Ch01_First_Fight).start(storage)
+				storage.increment_visited(&NodeTitle::Ch01_Awakening);
+				Ch01_First_Fight.start(storage)
 			},
 		};
 	}

@@ -6,19 +6,20 @@ pub mod speech;
 pub mod node_metadata;
 pub mod splitting;
 pub mod var_declaration;
+pub mod arg_parser;
 
 use anyhow::{Result, anyhow};
 use command::YarnCommand;
-use branches::choices::OptionLine;
-use branches::if_statement::{ElseIfStruct, IfStruct};
+use branches::options::OptionLine;
+use branches::if_statement::{ElseIf_, If_};
 use node_metadata::parse_metadata;
 use speech::Speech;
 use splitting::split_into_unparsed_nodes;
 use crate::parsing::util;
 use crate::{Indent, LineNumber, UnparsedLine};
 use crate::parsing::macros::{strip_start_then_trim, trim};
-use crate::parsing::raw::branches::choices::EndOptions;
-use crate::parsing::raw::branches::if_statement::{BranchKind, ElseStruct, EndIfStruct};
+use crate::parsing::raw::branches::options::EndOptions;
+use crate::parsing::raw::branches::if_statement::{BranchKind, Else_, EndIf_};
 use crate::parsing::raw::node_metadata::NodeMetadata;
 use crate::parsing::raw::var_declaration::VarDeclaration;
 
@@ -32,10 +33,10 @@ pub enum Content {
 	Command(YarnCommand),
 	OptionLine(OptionLine),
 	EndOptions(EndOptions),
-	If(IfStruct),
-	ElseIf(ElseIfStruct),
-	Else(ElseStruct),
-	EndIf(EndIfStruct),
+	If(If_),
+	ElseIf(ElseIf_),
+	Else(Else_),
+	EndIf(EndIf_),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

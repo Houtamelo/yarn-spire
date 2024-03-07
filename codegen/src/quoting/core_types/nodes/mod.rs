@@ -18,14 +18,14 @@ pub fn tokens_all_nodes_root(nodes: &[IDNode]) -> Tokens {
 		nodes.iter()
 		     .map(|node| {
 			     let title = &node.metadata.title;
-			     quote! { pub mod $title; }
+			     quote! { mod $title; }
 		     });
 	
 	let module_exports =
 		nodes.iter()
 		     .map(|node| {
 			     let title = &node.metadata.title;
-			     quote! { pub use $title::*; }
+			     quote! { pub use super::$title::*; }
 		     });
 	
 	quote! {
@@ -34,7 +34,10 @@ pub fn tokens_all_nodes_root(nodes: &[IDNode]) -> Tokens {
 		#![allow(unused)]
 		
 		$(SeparatedItems(module_declarations, "\n"))
-		$(SeparatedItems(module_exports, "\n"))
+		
+		pub mod exports {
+			$(SeparatedItems(module_exports, "\n"))
+		}
 	}
 }
 
@@ -48,7 +51,7 @@ pub fn tokens_node_root(node: &IDNode, lines_map: &LinesMap) -> Tokens {
 		|| lines_map.options_forks.len() > 0 {
 			let any_enum = enum_type_any(&node.metadata.title);
 			quote! { 
-				pub mod enum_any;
+				mod enum_any;
 				pub use enum_any::$any_enum;
 			}
 		} else {
@@ -59,7 +62,7 @@ pub fn tokens_node_root(node: &IDNode, lines_map: &LinesMap) -> Tokens {
 		if lines_map.speeches.len() > 0 {
 			let speech_enum = enum_type_speech(&node.metadata.title);
 			quote! { 
-				pub mod enum_speech;
+				mod enum_speech;
 				pub use enum_speech::$speech_enum;
 			}
 		} else {
@@ -70,7 +73,7 @@ pub fn tokens_node_root(node: &IDNode, lines_map: &LinesMap) -> Tokens {
 		if lines_map.commands.len() > 0 {
 			let command_enum = enum_type_command(&node.metadata.title);
 			quote! { 
-				pub mod enum_command;
+				mod enum_command;
 				pub use enum_command::$command_enum;
 			}
 		} else {
@@ -81,7 +84,7 @@ pub fn tokens_node_root(node: &IDNode, lines_map: &LinesMap) -> Tokens {
 		if lines_map.options_forks.len() > 0 {
 			let options_fork_enum = enum_type_options_fork(&node.metadata.title);
 			quote! { 
-				pub mod enum_options_fork;
+				mod enum_options_fork;
 				pub use enum_options_fork::$options_fork_enum;
 			}
 		} else {
@@ -92,7 +95,7 @@ pub fn tokens_node_root(node: &IDNode, lines_map: &LinesMap) -> Tokens {
 		if lines_map.option_lines.len() > 0 {
 			let option_line_enum = enum_type_option_line(&node.metadata.title);
 			quote! { 
-				pub mod enum_option_line;
+				mod enum_option_line;
 				pub use enum_option_line::$option_line_enum;
 			}
 		} else {
@@ -100,13 +103,17 @@ pub fn tokens_node_root(node: &IDNode, lines_map: &LinesMap) -> Tokens {
 		};
 
 	quote! {
-		pub mod title;
+		mod title;
 		pub use title::$node_title;
 		
 		$any_enum_tokens
+		
 		$speech_enum_tokens
+		
 		$command_enum_tokens
+		
 		$options_fork_enum_tokens
+		
 		$option_line_enum_tokens
 	}
 }

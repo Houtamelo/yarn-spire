@@ -13,15 +13,6 @@ pub enum YarnLit {
 }
 
 impl YarnLit {
-	pub(super) fn resolve(self) -> String {
-		return match self {
-			YarnLit::Int(i) => i.to_string(),
-			YarnLit::Float(f) => f.to_string(),
-			YarnLit::Str(s) => format!("\"{s}\""),
-			YarnLit::Bool(b) => b.to_string(),
-		};
-	}
-
 	pub(super) fn try_from_syn(syn_lit: SynLit) -> Result<Self> {
 		return match syn_lit {
 			SynLit::Str (str_lit  ) => Ok(YarnLit::Str(str_lit.value())),
@@ -64,7 +55,20 @@ impl FormatInto<Rust> for &YarnLit {
 				quote_in!(*tokens => $(*i));
 			},
 			YarnLit::Float(f) => {
-				quote_in!(*tokens => $(f.to_string()));
+				fn count_decimal_cases(input: &f64) -> usize {
+					let mut count = 0;
+					let mut current = *input;
+
+					while current.fract() != 0.0 && count < 6 {
+						current *= 10.0;
+						count += 1;
+					}
+
+					return usize::max(count, 1);
+				}
+				
+				let cases = count_decimal_cases(f);
+				quote_in!(*tokens => $(format!("{f:.0$}", cases)));
 			},
 			YarnLit::Str(s) => {
 				quote_in!(*tokens => $(quoted(s)));

@@ -45,9 +45,9 @@ impl YarnScope {
 
 fn peek_next_line_indent(lines_iter: &mut Peekable<IntoIter<RawLine>>)
                          -> Option<Indent> {
-	return lines_iter
+	lines_iter
 		.peek()
-		.map(|line| line.indent);
+		.map(|line| line.indent)
 }
 
 pub fn read_next_scope(parent_indent: Indent, lines_iter: &mut Peekable<IntoIter<RawLine>>)
@@ -63,24 +63,10 @@ pub fn read_next_scope(parent_indent: Indent, lines_iter: &mut Peekable<IntoIter
 	let mut flat_lines = Vec::new();
 	
 	loop {
-		let Some(next_line) = lines_iter.next_if(|line| line.indent <= self_indent)
+		let Some(next_line) = lines_iter.next_if(|line| line.indent >= self_indent)
 			else { 
 				break;
 			};
-
-		if next_line.indent > self_indent {
-			return Err(anyhow!(
-				"Unexpected indentation increase.\n\
-				 Expected lower or equal to: `{self_indent}`, Found: `{}`\n\
-				 Offending line: `{:?}`\n\n\
-				 Help: Only branches (started with `<<if [condition]>>`) and \
-				 choice options (started with `-> Option Text`) are allowed to increase indentation."
-				, next_line.indent, lines_iter.next()));
-		}
-
-		if next_line.indent < self_indent {
-			break;
-		}
 
 		match next_line.content {
 			Content::OptionLine(first_option) => {
@@ -104,8 +90,7 @@ pub fn read_next_scope(parent_indent: Indent, lines_iter: &mut Peekable<IntoIter
 				let if_branch = IfBranch::build(self_indent, if_, lines_iter)?;
 
 				if flat_lines.len() > 0 {
-					flows.push(Flow::Flat(flat_lines));
-					flat_lines = Vec::new();
+					flows.push(Flow::Flat(std::mem::take(&mut flat_lines)));
 				}
 
 				flows.push(Flow::IfBranch(if_branch));

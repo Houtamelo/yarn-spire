@@ -17,13 +17,13 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 		use $(&cfg.shared_qualified)::*;
 		
 		#[enum_dispatch(SpeechLine)]
-		pub(crate) trait SpeechTrait {
-			fn next(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
+		pub trait SpeechTrait {
+			fn advance(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
 			
 			$(Comments([
 				"The line's unique identifier, if specified, for more, \n\
 				 see [metadata#line](https://docs.yarnspinner.dev/getting-started/writing-in-yarn/tags-metadata#line)"]))
-			fn line_id(&self) -> Option<&'static str>;
+			fn line_id(&self) -> &'static str;
 		
 			$(Comments([
 				r#"The list of tags this line has, if any."#,

@@ -11,3 +11,5 @@ copy /Y /B "%~dp0target\debug\yarn_spire_codegen.exe" "%~dp0tests\yarn_spire_cod
 cd tests
 
 START /B /wait "generating_code" yarn_spire_codegen.exe
+
+pause

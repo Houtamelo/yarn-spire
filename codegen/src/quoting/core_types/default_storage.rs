@@ -44,8 +44,8 @@ fn tokens_macro_declaration() -> Tokens {
 			    }
 		    }
 		    
-			pub fn increment_visited(&mut self, title: &NodeTitle) {
-				let counter = self.visited_counters.entry(title.clone()).or_insert(0);
+			pub fn increment_visited(&mut self, title: NodeTitle) {
+				let counter = self.visited_counters.entry(title).or_insert(0);
 				*counter += 1;
 			}
 		
@@ -68,7 +68,7 @@ fn tokens_macro_declaration() -> Tokens {
 			/// - This will always return `false` if [TRACKING](crate::traits::NodeID::TRACKING) is `Some(Never)`.
 			///
 			/// For more information, see [TrackingSetting](crate::traits::TrackingSetting).
-			pub fn visited(&self, node_title: &NodeTitle) -> bool {
+			pub fn visited(&self, node_title: NodeTitle) -> bool {
 				return self.visited_count(node_title) > 0;
 			}
 		
@@ -79,8 +79,8 @@ fn tokens_macro_declaration() -> Tokens {
 			/// - This will always return `0` if [TRACKING](crate::traits::NodeID::TRACKING) is `Some(Never)`.
 			///
 			/// For more information, see [TrackingSetting](crate::traits::TrackingSetting).
-			pub fn visited_count(&self, node_title: &NodeTitle) -> usize {
-				return *self.visited_counters.get(node_title).unwrap_or(&0);
+			pub fn visited_count(&self, node_title: NodeTitle) -> usize {
+				return *self.visited_counters.get(&node_title).unwrap_or(&0);
 			}
 
 			pub fn random(&mut self) -> f64 {
@@ -157,7 +157,10 @@ fn insert_var_usages<'a>(scope: &'a IDScope,
 						},
 						IDFlatLine::BuiltInCommand(built_in) => {
 							match built_in {
-								BuiltInCommand::Set { var_name, value, .. } => {
+								BuiltInCommand::Set { 
+									var_name, value, 
+									op: _, line_number: _,
+								} => {
 									in_exprs.push((var_name, value))
 								}
 								BuiltInCommand::Jump { .. } => {}
@@ -406,8 +409,8 @@ fn tokens_macro_expansion(cfg: &YarnConfig,
 				}
 			}
 
-			pub fn increment_visited(&mut self, title: &NodeTitle) {
-				let counter = self.visited_counters.entry(title.clone()).or_insert(0);
+			pub fn increment_visited(&mut self, title: NodeTitle) {
+				let counter = self.visited_counters.entry(title).or_insert(0);
 				*counter += 1;
 			}
 
@@ -434,7 +437,7 @@ fn tokens_macro_expansion(cfg: &YarnConfig,
 				r#"- This will always return `false` if [TRACKING](crate::traits::NodeID::TRACKING) is `Some(Never)`."#,
 				r#"For more information, see [TrackingSetting](crate::traits::TrackingSetting)."#,
 			]))
-			pub fn visited(&self, node_title: &NodeTitle) -> bool {
+			pub fn visited(&self, node_title: NodeTitle) -> bool {
 				return self.visited_count(node_title) > 0;
 			}
 	
@@ -445,8 +448,8 @@ fn tokens_macro_expansion(cfg: &YarnConfig,
 				r#"- This will always return `0` if [TRACKING](crate::traits::NodeID::TRACKING) is `Some(Never)`."#,
 				r#"For more information, see [TrackingSetting](crate::traits::TrackingSetting)."#,
 			]))
-			pub fn visited_count(&self, node_title: &NodeTitle) -> usize {
-				return *self.visited_counters.get(node_title).unwrap_or(&0);
+			pub fn visited_count(&self, node_title: NodeTitle) -> usize {
+				return *self.visited_counters.get(&node_title).unwrap_or(&0);
 			}
 			
 			pub fn random(&mut self) -> f64 {
