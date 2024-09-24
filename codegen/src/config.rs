@@ -77,7 +77,7 @@ fn read_file() -> Result<String> {
 }
 
 fn deserialize(toml_input: String) -> Result<DeserializableConfig> {
-	return toml::from_str(&toml_input)
+	toml::from_str(&toml_input)
 		.map_err(|err| anyhow!(
 			"Could not parse `Config` file as `DeserializableConfig`.\n\
 			 Input: `{toml_input}`\n\
@@ -93,7 +93,7 @@ fn deserialize(toml_input: String) -> Result<DeserializableConfig> {
 			 command_path = \"crate::yarn_command\"\n\
 			 # Command's type name. (do not include the path)
 			 command_type_name = \"MyYarnCommand\"\n\
-			 # The module path of the structs that implement `YarnVar`.
+			 # The module path of the structs that implement `IVar`.
 			 vars_module_path = \"crate::dialogues::yarn_nodes::vars\"\n\
 			 # If true, the program will overwrite files in the destination folder.
 			 allow_overwrite = true\n\
@@ -108,7 +108,7 @@ fn deserialize(toml_input: String) -> Result<DeserializableConfig> {
 			 yarn_root_folder = \"../yarn_scripts\"\n\
 			 # The folders inside `yarn_root_folder` that will be excluded from parsing.
 			 exclude_yarn_folders = [\"test\", \"yarn.lock\", \"prototype\"]\n\
-			 ```"));
+			 ```"))
 }
 
 fn ensure_not_empty(input: &DeserializableConfig) -> Result<(String, String)> {
@@ -130,7 +130,7 @@ fn ensure_not_empty(input: &DeserializableConfig) -> Result<(String, String)> {
 	ensure_not_empty!(input.destination_module_path, "destination_module_path", "\"crate::dialogues::nodes\"");
 	ensure_not_empty!(input.yarn_root_folder, "yarn_root_folder", "\"../yarn_scripts\"");
 
-	return match (input.storage_module_path.is_empty() || input.vars_module_path.is_empty(), input.generate_storage) {
+	match (input.storage_module_path.is_empty() || input.vars_module_path.is_empty(), input.generate_storage) {
 		(true, true) => {
 			let storage_qualified = 
 				format!("{mod_path}::default_storage::{type_name}", 
@@ -147,9 +147,7 @@ fn ensure_not_empty(input: &DeserializableConfig) -> Result<(String, String)> {
 				format!("{mod_path}::{type_name}",
 					mod_path = input.storage_module_path, type_name = input.storage_type_name);
 			
-			let vars_qualified =
-				format!("{mod_path}",
-					mod_path = input.vars_module_path);
+			let vars_qualified = input.vars_module_path.to_string();
 			
 			Ok((storage_qualified, vars_qualified))
 		},
@@ -158,7 +156,7 @@ fn ensure_not_empty(input: &DeserializableConfig) -> Result<(String, String)> {
 				"Config file has `generate_storage` set to `false`, but either `storage_module_path` or `vars_module_path` is empty.\n\
 				 Help: If `generate_storage` is false. Then:\n\
 				  - `storage_path` should be the path to the storage type's module(without the type)\
-				  - `vars_module_path` should be the path to the module that contains the structs that implement `YarnVar`."))
+				  - `vars_module_path` should be the path to the module that contains the structs that implement `IVar`."))
 		},
 		(false, true) => {
 			Err(anyhow!(
@@ -166,7 +164,7 @@ fn ensure_not_empty(input: &DeserializableConfig) -> Result<(String, String)> {
 				 Help: If `generate_storage` is true, then `storage_module_path` and `vars_module_path` should both be empty. \
 				 This is because this program will generate the storage struct and variables for you, then set their paths manually."))
 		},
-	};
+	}
 }
 
 impl YarnConfig {

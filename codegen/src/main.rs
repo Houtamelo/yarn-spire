@@ -1,11 +1,8 @@
+#![allow(clippy::type_complexity)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
-#![allow(clippy::single_char_add_str)]
 #![feature(string_remove_matches)]
 #![feature(assert_matches)]
-#![allow(clippy::bool_comparison)]
-#![allow(clippy::needless_return)]
-#![allow(dead_code)]
 #![feature(coroutines)]
 #![feature(pattern)]
 #![feature(stmt_expr_attributes)]
@@ -14,6 +11,7 @@
 #![feature(extract_if)]
 #![feature(coroutine_trait)]
 #![feature(iter_from_coroutine)]
+#![feature(gen_blocks)]
 
 extern crate core;
 
@@ -47,8 +45,7 @@ pub fn main() -> Result<()> {
 	let (nodes, var_declarations) =
 		yarn_files
 			.into_iter()
-			.map(|yarn_file| 
-				parse_nodes(yarn_file))
+			.map(parse_nodes)
 			.try_fold((vec![], vec![]), |(mut nodes_sum, mut vars_sum), node_result| {
 				let (nodes, var_declarations) = node_result?;
 				nodes_sum.extend(nodes);

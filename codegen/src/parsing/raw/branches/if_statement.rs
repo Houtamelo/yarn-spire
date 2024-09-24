@@ -66,16 +66,14 @@ impl ParseRawYarn for BranchKind {
 				 Remaining Line: `{line}`")));
 		}
 		
-		return match branch_kind {
+		match branch_kind {
 			BranchKind::If => {
-				let condition =
-					return_if_err!(
-						parse_yarn_expr(line)
-							.map_err(|err| anyhow!(
-								"Could not parse condition in `<<if [condition]>>` statement.\n\
-								 Error: `{err:?}`\n\
-								 Condition as String: `{line}`"))
-					);
+				let condition = return_if_err!(
+					parse_yarn_expr(line)
+						.map_err(|err| anyhow!(
+							"Could not parse condition in `<<if [condition]>>` statement.\n\
+							 Error: `{err:?}`\n\
+							 Condition as String: `{line}`")));
 				
 				Some(Ok(Content::If(
 					If_ {
@@ -105,6 +103,6 @@ impl ParseRawYarn for BranchKind {
 			BranchKind::EndIf => {
 				Some(Ok(Content::EndIf(EndIf_ { line_number })))
 			},
-		};
+		}
 	}
 }

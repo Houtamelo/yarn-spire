@@ -36,29 +36,30 @@ impl IDNode {
 			option_lines
 		}
 	}
-	
+
+	#[allow(unused)]
 	pub fn speeches(&self) -> impl Iterator<Item = &IDSpeech> {
-		std::iter::from_coroutine(move || {
+		std::iter::from_coroutine(#[coroutine] move || {
 			for scope in &self.scopes {
-				let mut scope_routine = scope.iter_speeches();
-				while let Some(_speech) = scope_routine.next() {
+				for _speech in scope.iter_speeches() {
 					yield _speech;
 				}
 			}
 		})
 	}
 	
+	#[allow(unused)]
 	pub fn line_ids(&self) -> impl Iterator<Item = &str> {
-		std::iter::from_coroutine(move || {
+		std::iter::from_coroutine(#[coroutine] move || {
 			for scope in &self.scopes {
-				let mut scope_routine = scope.iter_line_ids();
-				while let Some(_line_id) = scope_routine.next() {
+				for _line_id in scope.iter_line_ids() {
 					yield _line_id;
 				}
 			}
 		})
 	}
-	
+
+	#[allow(unused)]
 	pub fn line_ids_by_instruction(&self) -> HashMap<InstructionKind, Vec<&str>> {
 		let mut speeches = vec![];
 		let mut commands = vec![];
@@ -74,10 +75,10 @@ impl IDNode {
 			}
 		}
 		
-		return HashMap::from_iter([
+		HashMap::from_iter([
 			(InstructionKind::Speech, speeches),
 			(InstructionKind::Command, commands),
 			(InstructionKind::OptionsFork, options_forks),
-		]);
+		])
 	}
 }

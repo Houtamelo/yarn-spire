@@ -3,20 +3,17 @@
 
 use std::borrow::Cow;
 
-use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
 use crate::shared_internal::*;
 use crate::shared_internal::ch01_awakening_speech::Ch01_Awakening_Speech;
 
-#[enum_dispatch]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SpeechLine {
 	Ch01_Awakening_Speech,
 }
 
-#[enum_dispatch(SpeechLine)]
-pub trait SpeechTrait {
+pub trait ISpeechLine {
 	fn next(&self, storage: &mut Storage) -> YarnYield;
 
 	/// The line's unique identifier, for more, 
@@ -37,7 +34,9 @@ pub trait SpeechTrait {
 	/// Consider the line: `Houtamelo: This is the second line #houtamelo:happy #narrator:sad`
 	///
 	/// The tags list would be: `vec!["houtamelo:happy", "narrator:sad"]`
-	fn tags(&self) -> &'static [&'static str];
+	fn tags(&self) -> &'static [&'static str] {
+		&[]
+	}
 
 	/// The name of the character that's speaking, if any.
 	///
@@ -54,7 +53,9 @@ pub trait SpeechTrait {
 	///
 	/// On the case above, it is expected that `get_var::<player_name>()` returns a string, 
 	/// if it doesn't, the code won't compile.
-	fn speaker(&self, storage: &Storage) -> Option<Cow<'static, str>>;
+	fn speaker(&self, storage: &Storage) -> Option<Cow<'static, str>> {
+		None
+	}
 
 	/// What's being spoken.
 	///

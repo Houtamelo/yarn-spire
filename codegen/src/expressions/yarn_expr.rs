@@ -48,7 +48,7 @@ impl YarnExpr {
 		    };
 		}
 		
-		return match func_name.as_str() {
+		match func_name.as_str() {
 			"get_var" => {
 				let arg = one_arg_or_bail!();
 				match arg {
@@ -153,15 +153,15 @@ impl YarnExpr {
 				func_name,
 				args,
 			})
-		};
+		}
 	}
 	
 	pub fn iter_exprs(&self) -> impl Iterator<Item = &YarnExpr> {
-		return ExprIter::from_expr(self);
+		ExprIter::from_expr(self)
 	}
 
 	pub fn infer_ty(&self) -> Option<DeclarationTy> {
-		return match self {
+		match self {
 			YarnExpr::Lit(lit) => {
 				match lit {
 					YarnLit::Int(_) => Some(DeclarationTy::isize),
@@ -206,11 +206,11 @@ impl YarnExpr {
 			| YarnExpr::GetVar(_) => {
 				None
 			}
-		};
+		}
 	}
 	
 	pub fn open(self) -> Self {
-		return match self {
+		match self {
 			YarnExpr::Parenthesis(inner) => {
 				inner.open()
 			}
@@ -224,13 +224,13 @@ impl YarnExpr {
 			| YarnExpr::Cast { .. }) => {
 				already_open
 			}
-		};
+		}
 	}
 }
 
 impl FormatInto<Rust> for &YarnExpr {
 	fn format_into(self, tokens: &mut Tokens<Rust>) {
-		return match self {
+		match self {
 			YarnExpr::Lit(literal) => {
 				literal.format_into(tokens);
 			},
@@ -258,7 +258,7 @@ impl FormatInto<Rust> for &YarnExpr {
 			YarnExpr::Cast { cast_ty, expr } => {
 				quote_in!( *tokens => $(expr.as_ref()) as $cast_ty );
 			}
-		};
+		}
 	}
 }
 
@@ -270,7 +270,7 @@ impl<'a> ExprIter<'a> {
 	fn from_expr(expr: &'a YarnExpr) -> Self {
 		let mut exprs = vec![];
 		Self::fill_exprs(&mut exprs, expr);
-		return Self { exprs };
+		Self { exprs }
 	}
 	
 	fn fill_exprs(fill_me: &mut Vec<&'a YarnExpr>, expr: &'a YarnExpr) {
@@ -328,6 +328,6 @@ impl<'a> Iterator for ExprIter<'a> {
 	type Item = &'a YarnExpr;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		return self.exprs.pop();
+		self.exprs.pop()
 	}
 }

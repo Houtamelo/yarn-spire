@@ -16,11 +16,11 @@ pub struct VarDeclaration {
 
 impl VarDeclaration {
 	pub fn infer_ty(&self) -> Option<DeclarationTy> {
-		return if let Some(cast_ty) = self.cast_ty {
+		if let Some(cast_ty) = self.cast_ty {
 			Some(cast_ty)
 		} else {
 			self.default_value.infer_ty()
-		};
+		}
 	}
 }
 
@@ -202,7 +202,7 @@ impl<'a> Iterator for ArgBuilder<'a> {
 							// skip whitespace
 							while chars.next_if(|ch| matches!(*ch, ' ' | '\t')).is_some() {}
 
-							if false == matches!(*previous_char, '+' | '-' | '/' | '*' | '%' | '>' | '<' | '!' | '=')
+							if !matches!(*previous_char, '+' | '-' | '/' | '*' | '%' | '>' | '<' | '!' | '=')
 								|| chars.peek().is_none() {
 								break;
 							}
@@ -261,11 +261,11 @@ impl<'a> Iterator for ArgBuilder<'a> {
 					)));
 				}
 
-				if sum.len() == 0 {
+				if sum.is_empty() {
 					return None;
 				}
 
-				return match char_state {
+				match char_state {
 					CharState::Std =>
 						Some(Ok((sum, ended_with_double_angle_bracket))),
 					| CharState::StringLiteral
@@ -276,9 +276,9 @@ impl<'a> Iterator for ArgBuilder<'a> {
 							 Nesting: `{nesting:?}`\n\n\
 							 Help: every string literal(started with `\"`) must end with another `\"`."
 						))),
-				};
+				}
 			}
-			ArgState::Empty => return None,
+			ArgState::Empty => None,
 		}
 	}
 }
@@ -360,14 +360,14 @@ fn parse_args(args_iter: &mut ArgBuilder) -> Result<(String, YarnExpr, Option<De
 			 Instead got: `{remaining_str}`"));
 	}
 	
-	return if let Some(cast_ty) = DeclarationTy::from_str(remaining_str) {
+	if let Some(cast_ty) = DeclarationTy::from_str(remaining_str) {
 		Ok((var_name, value_expr, Some(cast_ty)))
 	} else {
 		Err(anyhow!(
 			"Invalid cast type: `{remaining_str}`.\n\
 			 Expected one of(case-insensitive): `string`, `number`, `bool`,\
 			  any rust int (`i8`, `u32`, ..) or a float (`f32`, `f64`)"))
-	};
+	}
 }
 
 impl VarDeclaration {

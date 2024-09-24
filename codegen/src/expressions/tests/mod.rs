@@ -18,18 +18,17 @@ macro_rules! assert_parse {
     ($lit: literal, $pattern: expr) => {{
 		let parse_result = crate::expressions::tests::parse_lit!($lit);
 		match parse_result {
-			Ok(ok)   => { assert_eq!(ok, $pattern) }
+			Ok(ok)   => { pretty_assertions::assert_eq!(ok, $pattern) }
 			Err(err) => { panic!("{err}") }
 		}
     }};
 }
 
-
 macro_rules! parse_expect_eq {
     ($lit: literal, $pattern: expr) => {{
 		let parse_result = parse_yarn_expr($lit);
 		match parse_result {
-			Ok(ok)   => { assert_eq!(ok, $pattern) }
+			Ok(ok)   => { pretty_assertions::assert_eq!(ok, $pattern) }
 			Err(err) => { panic!("{err}") }
 		}
     }};

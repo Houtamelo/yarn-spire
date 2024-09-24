@@ -271,7 +271,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 			}
 		}).collect();
 
-	return match line_id.len() {
+	match line_id.len() {
 		0 => Ok(OptionLine {
 			line_number,
 			line_id: None,
@@ -296,7 +296,7 @@ fn parse_line(chars: &mut Peekable<Chars>, line_number: LineNumber) -> Result<Op
 			 \tIf Condition: `{if_condition:?}`\n\
 			 \tMetadata: `{metadata:?}`\n"
 			, line_id.join(", "), tags.join(", "))),
-	};
+	}
 }
 
 fn build_args(unparsed_args: Vec<String>) -> Result<Vec<YarnExpr>> {
@@ -310,7 +310,7 @@ fn build_args(unparsed_args: Vec<String>) -> Result<Vec<YarnExpr>> {
 				         All Unparsed Arguments: `{unparsed_args:?}`")))
 			.try_collect()?;
 
-	return Ok(exprs);
+	Ok(exprs)
 }
 
 fn parse_if_condition_and_metadata(mut chars: Peekable<Chars>) -> Result<(YarnExpr, Option<String>)> {
@@ -327,8 +327,7 @@ fn parse_if_condition_and_metadata(mut chars: Peekable<Chars>) -> Result<(YarnEx
 						sum.push('"');
 					},
 					'>' => {
-						if nesting.len() > 0
-						|| chars.next_if_eq(&'>').is_none() {
+						if !nesting.is_empty() || chars.next_if_eq(&'>').is_none() {
 							sum.push('>');
 							continue;
 						}
@@ -430,7 +429,7 @@ fn parse_if_condition_and_metadata(mut chars: Peekable<Chars>) -> Result<(YarnEx
 			 Help: for every opening delimiter, there must be a matching closing delimiter (and vice-versa)."));
 	}
 	
-	return match char_state {
+	match char_state {
 		CharState::Std => Err(anyhow!(
 			"`if condition` argument is empty.\n\
 			 Argument: `{sum}`"
@@ -442,7 +441,7 @@ fn parse_if_condition_and_metadata(mut chars: Peekable<Chars>) -> Result<(YarnEx
 				 Argument: `{sum}`"
 			))
 		},
-	};
+	}
 }
 
 impl ParseRawYarn for OptionLine {
@@ -482,6 +481,6 @@ impl ParseRawYarn for OptionLine {
 						, chars.collect::<String>()))
 			);
 		
-		return Some(Ok(Content::OptionLine(choice_option)));
+		Some(Ok(Content::OptionLine(choice_option)))
 	}
 }

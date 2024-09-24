@@ -4,7 +4,6 @@
 
 use std::borrow::Cow;
 
-use enum_dispatch::enum_dispatch;
 use houtamelo_utils::prelude::CountOrMore;
 use serde::{Deserialize, Serialize};
 
@@ -12,13 +11,11 @@ use crate::shared_internal::*;
 use crate::shared_internal::ch01_awakening_option_line::Ch01_Awakening_OptionLine;
 use crate::shared_internal::ch01_awakening_options_fork::Ch01_Awakening_OptionsFork;
 
-#[enum_dispatch(OptionsFork)]
-pub trait OptionsForkTrait {
+pub trait IOptionsFork {
 	fn options(&self) -> CountOrMore<1, OptionLine>;
 }
 
-#[enum_dispatch(OptionLine)]
-pub trait OptionLineTrait {
+pub trait IOptionLine {
 	fn next(&self, storage: &mut Storage) -> YarnYield;
 
 	/// The line's unique identifier, for more, 
@@ -75,13 +72,12 @@ pub trait OptionLineTrait {
 	fn is_available(&self, storage: &Storage) -> Option<bool>;
 }
 
-#[enum_dispatch]
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum OptionsFork {
 	Ch01_Awakening_OptionsFork,
 }
 
-#[enum_dispatch]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum OptionLine {
 	Ch01_Awakening_OptionLine,

@@ -40,7 +40,7 @@ impl OptionsFork {
 		}
 
 		self.options.push((choice_option, option_scope));
-		return Ok(());
+		Ok(())
 	}
 	
 	pub fn build(parent_indent: Indent, first_option: OptionLine,
@@ -80,14 +80,15 @@ impl OptionsFork {
 		lines_iter.next_if(|next| 
 			next.indent == parent_indent && matches!(next.content, Content::EndOptions(_)));
 
-		return Ok(choices);
+		Ok(choices)
 	}
-	
+
+	#[allow(unused)]
 	pub fn into_iter_options(self) -> impl Iterator<Item = (OptionLine, Option<Box<YarnScope>>)> {
-		return self.options.into_iter();
+		self.options.into_iter()
 	}
 	
 	pub fn iter_options(&self) -> impl Iterator<Item = &(OptionLine, Option<Box<YarnScope>>)> {
-		return self.options.iter();
+		self.options.iter()
 	}
 }

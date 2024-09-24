@@ -1,29 +1,26 @@
+use anyhow::{anyhow, Result};
 use proc_macro2::{Ident, Punct, Spacing, Span};
+use proc_macro2::{TokenStream, TokenTree};
+use quote::{ToTokens, TokenStreamExt};
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
-use anyhow::{Result, anyhow};
-use syn::Expr;
-use proc_macro2::{TokenStream, TokenTree};
-use quote::{TokenStreamExt, ToTokens};
 use syn::parse::Parse;
+use syn::Expr;
 
-fn tokens_iter_recursive(mut tokens: impl Iterator<Item = TokenTree>) -> impl Iterator<Item = TokenTree> {
-	std::iter::from_coroutine(
-	move || {
-		while let Some(token) = tokens.next() {
+fn tokens_iter_recursive(tokens: impl Iterator<Item = TokenTree>) -> impl Iterator<Item = TokenTree> {
+	std::iter::from_coroutine(#[coroutine] move || {
+		for token in tokens {
 			match token {
 				TokenTree::Group(group) => {
 					yield TokenTree::Punct(Punct::new('(', Spacing::Alone));
 					
-					let mut inner_iter =
-						Box::pin(group.stream().into_iter());
-					while let Some(_inner_next) = inner_iter.next() {
+					for _inner_next in Box::new(tokens_iter_recursive(group.stream().into_iter())) {
 						yield _inner_next;
 					}
-					
+
 					yield TokenTree::Punct(Punct::new(')', Spacing::Alone));
-				},
+				}
 				_other => {
 					yield _other;
 				}
@@ -33,23 +30,21 @@ fn tokens_iter_recursive(mut tokens: impl Iterator<Item = TokenTree>) -> impl It
 }
 
 fn replace_sequences(
-	tokens: &mut Vec<TokenTree>, 
-	sequence: &[&[&str]], 
-	replace_with: &[TokenTree]
+	tokens: &mut Vec<TokenTree>,
+	sequence: &[&[&str]],
+	replace_with: &[TokenTree],
 ) {
-	
-	return next(tokens, &sequence, &replace_with, 0);
-	
+	return next(tokens, sequence, replace_with, 0);
+
 	fn matches_ident(tuple: (&&str, &TokenTree)) -> bool {
 		let (pattern, token) = tuple;
-		if let TokenTree::Ident(ident) = token
-			&& &ident.to_string() == pattern {
-			return true;
+		if let TokenTree::Ident(ident) = token && &ident.to_string() == pattern {
+			true
 		} else {
-			return false;
-		};
+			false
+		}
 	}
-	
+
 	fn next(
 		tokens: &mut Vec<TokenTree>,
 		sequences: &[&[&str]],
@@ -59,34 +54,30 @@ fn replace_sequences(
 		if index >= tokens.len() {
 			return;
 		}
-		
-		let remove_len_option =
-			sequences
-				.iter()
-				.find_map(|seq| {
-					let Some(slice) = tokens.get(index..(index + seq.len()))
-						else {
-							return None;
-						};
-					
-					seq.iter()
-					   .zip(slice)
-					   .all(matches_ident)
-					   .then_some(seq.len())
-				});
-		
+
+		let remove_len_option = sequences
+			.iter()
+			.find_map(|seq| {
+				let slice = tokens.get(index..(index + seq.len()))?;
+
+				seq.iter()
+				   .zip(slice)
+				   .all(matches_ident)
+				   .then_some(seq.len())
+			});
+
 		let next_index =
 			if let Some(remove_len) = remove_len_option {
-				let _ =
-					tokens.splice(index..(index + remove_len), replace_with.iter().cloned())
-					      .skip(usize::MAX);
-				
+				let _ = tokens
+					.splice(index..(index + remove_len), replace_with.iter().cloned())
+					.skip(usize::MAX);
+
 				index + replace_with.len()
 			} else {
 				index + 1
 			};
-		
-		return next(tokens, sequences, replace_with, next_index);
+
+		next(tokens, sequences, replace_with, next_index)
 	}
 }
 
@@ -105,55 +96,47 @@ pub fn replace_english_operators(tokens: &mut Vec<TokenTree>) {
 		(&[
 			&["is", "not", "greater", "than", "or", "equal", "to"],
 			&["is_not_greater_than_or_equal_to"],
-		], punct!{'<'}),
-
+		], punct! {'<'}),
 		(&[
 			&["is", "not", "less", "than", "or", "equal", "to"],
 			&["is_not_less_than_or_equal_to"],
-		], punct!{'>'}),
-		
+		], punct! {'>'}),
 		(&[
 			&["greater", "than", "or", "equal", "to"],
 			&["greater_than_or_equal_to"],
 			&["is", "greater", "than", "or", "equal", "to"],
 			&["is_greater_than_or_equal_to"],
 			&["gte"],
-		], punct!{'>''='}),
-
+		], punct! {'>''='}),
 		(&[
 			&["less", "than", "or", "equal", "to"],
 			&["less_than_or_equal_to"],
 			&["is", "less", "than", "or", "equal", "to"],
 			&["is_less_than_or_equal_to"],
 			&["lte"],
-		], punct!{'<''='}),
-
+		], punct! {'<''='}),
 		(&[
 			&["is", "not", "greater", "than"],
 			&["is_not_greater_than"],
-		], punct!{'<''='}),
-
+		], punct! {'<''='}),
 		(&[
 			&["is", "not", "less", "than"],
 			&["is_not_less_than"],
-		], punct!{'>''='}),
-
+		], punct! {'>''='}),
 		(&[
 			&["greater", "than"],
 			&["greater_than"],
 			&["is", "greater", "than"],
 			&["is_greater_than"],
 			&["gt"],
-		], punct!{'>'}),
-
+		], punct! {'>'}),
 		(&[
 			&["less", "than"],
 			&["less_than"],
 			&["is", "less", "than"],
 			&["is_less_than"],
 			&["lt"],
-		], punct!{'<'}),
-
+		], punct! {'<'}),
 		(&[
 			&["not", "equal", "to"],
 			&["not_equal_to"],
@@ -162,8 +145,7 @@ pub fn replace_english_operators(tokens: &mut Vec<TokenTree>) {
 			&["is", "not"],
 			&["is_not"],
 			&["neq"],
-		], punct!{'!''='}),
-
+		], punct! {'!''='}),
 		(&[
 			&["equal", "to"],
 			&["equal_to"],
@@ -171,41 +153,34 @@ pub fn replace_english_operators(tokens: &mut Vec<TokenTree>) {
 			&["is_equal_to"],
 			&["eq"],
 			&["is"],
-		], punct!{'=''='}),
-
+		], punct! {'=''='}),
 		(&[
 			&["bit", "xor"],
 			&["bit_xor"],
 			&["xor"],
-		], punct!{'^'}),
-
+		], punct! {'^'}),
 		(&[
 			&["bit", "and"],
 			&["bit_and"],
-		], punct!{'&'}),
-
+		], punct! {'&'}),
 		(&[
 			&["bit", "or"],
 			&["bit_or"],
-		], punct!{'|'}),
-
+		], punct! {'|'}),
 		(&[
 			&["or"],
-		], punct!{'|''|'}),
-
+		], punct! {'|''|'}),
 		(&[
 			&["and"],
-		], punct!{'&''&'}),
-
+		], punct! {'&''&'}),
 		(&[
 			&["not"],
-		], punct!{'!'}),
+		], punct! {'!'}),
 	];
 
-	patterns
-		.iter()
-		.for_each(|(sequences, replace_with)| 
-			replace_sequences(tokens, sequences, replace_with));
+	patterns.iter().for_each(|(sequences, replace_with)| {
+		replace_sequences(tokens, sequences, replace_with)
+	});
 }
 
 pub struct CustomExpr(pub Expr);
@@ -214,19 +189,16 @@ impl CustomExpr {
 	pub fn parse_str(input: &str) -> Result<CustomExpr> {
 		let mut tokens =
 			proc_macro2::TokenStream::from_str(input)
-				.map(|stream|
-					stream.into_iter()
-					      .collect::<Vec<_>>())
+				.map(|stream| stream.into_iter().collect::<Vec<_>>())
 				.map_err(|err| anyhow!(
 					 "Could not parse input into token stream.\n\
 					  Input: `{input}`\n\
 					  Error: {err}")
 				)?;
-		
+
 		replace_english_operators(&mut tokens);
 
-		let mut iterator =
-			tokens_iter_recursive(tokens.into_iter());
+		let mut iterator = tokens_iter_recursive(tokens.into_iter());
 		let mut result = TokenStream::new();
 
 		while let Some(token) = iterator.next() {
@@ -235,8 +207,12 @@ impl CustomExpr {
 					match iterator.next() {
 						Some(TokenTree::Ident(ident)) => {
 							result.append(TokenTree::Ident(Ident::new("get_var", Span::call_site())));
-							result.append(TokenTree::Punct(Punct::new('(', Spacing::Alone)));
+							result.append(TokenTree::Punct(Punct::new(':', Spacing::Joint)));
+							result.append(TokenTree::Punct(Punct::new(':', Spacing::Alone)));
+							result.append(TokenTree::Punct(Punct::new('<', Spacing::Alone)));
 							result.append(TokenTree::Ident(ident));
+							result.append(TokenTree::Punct(Punct::new('>', Spacing::Alone)));
+							result.append(TokenTree::Punct(Punct::new('(', Spacing::Alone)));
 							result.append(TokenTree::Punct(Punct::new(')', Spacing::Alone)));
 						}
 						invalid => {
@@ -245,19 +221,18 @@ impl CustomExpr {
 								 Got: `{invalid:?}`"));
 						}
 					}
-				},
+				}
 				_ => result.append(token),
 			}
 		}
-		
-		let final_tokens = 
-			TokenStream::from_str(result.to_string().as_str())
-				.map_err(|err| anyhow!(
-					"Could not convert modified expression input into `TokenStream`\n\
-					 TokenStream(as str): `{result:?}`\n\
-					 Error: {err}")
-				)?;
-		
+
+		let final_tokens = TokenStream::from_str(result.to_string().as_str())
+			.map_err(|err| anyhow!(
+				"Could not convert modified expression input into `TokenStream`\n\
+				 TokenStream(as str): `{result:?}`\n\
+				 Error: {err}")
+			)?;
+
 		syn::parse::Parser::parse2(Expr::parse, final_tokens.clone())
 			.or_else(|_| syn::parse::Parser::parse2(Expr::parse_without_eager_brace, final_tokens.clone()))
 			.map(CustomExpr)
@@ -277,7 +252,7 @@ impl Debug for CustomExpr {
 
 impl Deref for CustomExpr {
 	type Target = Expr;
-	
+
 	fn deref(&self) -> &Self::Target {
 		&self.0
 	}

@@ -28,8 +28,8 @@ pub fn parse_node_contents(node: RawNode) -> Result<YarnNode> {
 		}
 	}
 
-	return Ok(YarnNode {
+	Ok(YarnNode {
 		metadata: node.metadata,
 		contents,
-	});
+	})
 }

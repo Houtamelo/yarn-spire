@@ -11,7 +11,7 @@ pub struct IDScope {
 
 impl IDScope {
 	pub fn iter_speeches(&self) -> impl Iterator<Item = &IDSpeech> {
-		std::iter::from_coroutine(move || {
+		std::iter::from_coroutine(#[coroutine] move || {
 			for flow in &self.flows {
 				match flow {
 					IDFlow::Flat(lines) => {
@@ -28,8 +28,7 @@ impl IDScope {
 					IDFlow::OptionsFork(options_fork) => {
 						for (_line, scope_option) in options_fork.options.iter() {
 							if let Some(scope) = scope_option {
-								let mut scope_routine = Box::from(scope.iter_speeches());
-								while let Some(_speech) = scope_routine.next() {
+								for _speech in Box::from(scope.iter_speeches()) {
 									yield _speech;
 								}
 							}
@@ -37,24 +36,21 @@ impl IDScope {
 					}
 					IDFlow::IfBranch(if_branch) => {
 						if let Some(if_scope) = &if_branch.if_.1 {
-							let mut scope_routine = Box::from(if_scope.iter_speeches());
-							while let Some(_speech) = scope_routine.next() {
+							for _speech in Box::from(if_scope.iter_speeches()) {
 								yield _speech;
 							}
 						}
 
 						for (_, else_if_scope_option) in &if_branch.else_ifs {
 							if let Some(else_if_scope) = else_if_scope_option {
-								let mut scope_routine = Box::from(else_if_scope.iter_speeches());
-								while let Some(_speech) = scope_routine.next() {
+								for _speech in Box::from(else_if_scope.iter_speeches()) {
 									yield _speech;
 								}
 							}
 						}
 
 						if let Some((_, Some(else_scope))) = &if_branch.else_ {
-							let mut scope_routine = Box::from(else_scope.iter_speeches());
-							while let Some(_speech) = scope_routine.next() {
+							for _speech in Box::from(else_scope.iter_speeches()) {
 								yield _speech;
 							}
 						}
@@ -65,7 +61,7 @@ impl IDScope {
 	}
 	
 	pub fn iter_line_ids(&self) -> impl Iterator<Item = &str> {
-		std::iter::from_coroutine(move || {
+		std::iter::from_coroutine(#[coroutine] move || {
 			for flow in &self.flows {
 				match flow {
 					IDFlow::Flat(lines) => {
@@ -88,8 +84,7 @@ impl IDScope {
 							yield _line.line_id.as_str();
 							
 							if let Some(scope) = scope_option {
-								let mut scope_routine = Box::from(scope.iter_line_ids());
-								while let Some(_line_id) = scope_routine.next() {
+								for _line_id in Box::from(scope.iter_line_ids()) {
 									yield _line_id;
 								}
 							}
@@ -97,24 +92,21 @@ impl IDScope {
 					}
 					IDFlow::IfBranch(if_branch) => {
 						if let Some(if_scope) = &if_branch.if_.1 {
-							let mut scope_routine = Box::from(if_scope.iter_line_ids());
-							while let Some(_line_id) = scope_routine.next() {
+							for _line_id in Box::from(if_scope.iter_line_ids()) {
 								yield _line_id;
 							}
 						}
 						
 						for (_, else_if_scope_option) in &if_branch.else_ifs {
 							if let Some(else_if_scope) = else_if_scope_option {
-								let mut scope_routine = Box::from(else_if_scope.iter_line_ids());
-								while let Some(_line_id) = scope_routine.next() {
+								for _line_id in Box::from(else_if_scope.iter_line_ids()) {
 									yield _line_id;
 								}
 							}
 						}
 						
 						if let Some((_, Some(else_scope))) = &if_branch.else_ {
-							let mut scope_routine = Box::from(else_scope.iter_line_ids());
-							while let Some(_line_id) = scope_routine.next() {
+							for _line_id in Box::from(else_scope.iter_line_ids()) {
 								yield _line_id;
 							}
 						}
@@ -125,7 +117,7 @@ impl IDScope {
 	}
 	
 	pub fn iter_instructions_kind(&self) -> impl Iterator<Item = (InstructionKind, &str)> {
-		std::iter::from_coroutine(move || {
+		std::iter::from_coroutine(#[coroutine] move || {
 			for flow in &self.flows {
 				match flow {
 					IDFlow::Flat(lines) => {
@@ -146,8 +138,7 @@ impl IDScope {
 
 						for (_line, scope_option) in options_fork.options.iter() {
 							if let Some(scope) = scope_option {
-								let mut scope_routine = Box::from(scope.iter_instructions_kind());
-								while let Some(_mapped_line) = scope_routine.next() {
+								for _mapped_line in Box::from(scope.iter_instructions_kind()) {
 									yield _mapped_line;
 								}
 							}
@@ -155,24 +146,21 @@ impl IDScope {
 					}
 					IDFlow::IfBranch(if_branch) => {
 						if let Some(if_scope) = &if_branch.if_.1 {
-							let mut scope_routine = Box::from(if_scope.iter_instructions_kind());
-							while let Some(_mapped_line) = scope_routine.next() {
+							for _mapped_line in Box::from(if_scope.iter_instructions_kind()) {
 								yield _mapped_line;
 							}
 						}
 
 						for (_, else_if_scope_option) in &if_branch.else_ifs {
 							if let Some(else_if_scope) = else_if_scope_option {
-								let mut scope_routine = Box::from(else_if_scope.iter_instructions_kind());
-								while let Some(_mapped_line) = scope_routine.next() {
+								for _mapped_line in Box::from(else_if_scope.iter_instructions_kind()) {
 									yield _mapped_line;
 								}
 							}
 						}
 
 						if let Some((_, Some(else_scope))) = &if_branch.else_ {
-							let mut scope_routine = Box::from(else_scope.iter_instructions_kind());
-							while let Some(_mapped_line) = scope_routine.next() {
+							for _mapped_line in Box::from(else_scope.iter_instructions_kind()) {
 								yield _mapped_line;
 							}
 						}
@@ -269,7 +257,7 @@ impl IDScope {
 		    };
 		}
 		
-		std::iter::from_coroutine(move || {
+		std::iter::from_coroutine(#[coroutine] move || {
 			for flow in &self.flows {
 				match flow {
 					IDFlow::Flat(flat_lines) => {
@@ -329,7 +317,7 @@ impl IDScope {
 	}
 	
 	pub fn iter_flows_recursive(&self) -> impl Iterator<Item = &IDFlow> {
-		std::iter::from_coroutine(move || {
+		std::iter::from_coroutine(#[coroutine] move || {
 			for flow in &self.flows {
 				yield flow;
 				
@@ -338,8 +326,7 @@ impl IDScope {
 					IDFlow::OptionsFork(options_fork) => {
 						for (_, maybe_scope) in options_fork.options.iter() {
 							if let Some(scope) = maybe_scope {
-								let mut scope_routine = Box::new(scope.iter_flows_recursive());
-								while let Some(_flow) = scope_routine.next() {
+								for _flow in Box::new(scope.iter_flows_recursive()) {
 									yield _flow;
 								}
 							}
@@ -347,24 +334,21 @@ impl IDScope {
 					}
 					IDFlow::IfBranch(if_branch) => {
 						if let (_, Some(scope)) = &if_branch.if_ {
-							let mut scope_routine = Box::new(scope.iter_flows_recursive());
-							while let Some(_flow) = scope_routine.next() {
+							for _flow in Box::new(scope.iter_flows_recursive()) {
 								yield _flow;
 							}
 						}
 						
 						for (_, maybe_scope) in &if_branch.else_ifs {
 							if let Some(scope) = maybe_scope {
-								let mut scope_routine = Box::new(scope.iter_flows_recursive());
-								while let Some(_flow) = scope_routine.next() {
+								for _flow in Box::new(scope.iter_flows_recursive()) {
 									yield _flow;
 								}
 							}
 						}
 						
 						if let Some((_, Some(scope))) = &if_branch.else_ {
-							let mut scope_routine = Box::new(scope.iter_flows_recursive());
-							while let Some(_flow) = scope_routine.next() {
+							for _flow in Box::new(scope.iter_flows_recursive()) {
 								yield _flow;
 							}
 						}
@@ -375,7 +359,7 @@ impl IDScope {
 	}
 	
 	pub fn iter_flat_lines(&self) -> impl Iterator<Item = &IDFlatLine> {
-		std::iter::from_coroutine(move || {
+		std::iter::from_coroutine(#[coroutine] move || {
 			for flow in self.iter_flows_recursive() {
 				if let IDFlow::Flat(flat_lines) = flow {
 					for _line in flat_lines {

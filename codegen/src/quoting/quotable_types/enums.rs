@@ -1,6 +1,6 @@
 use crate::quoting::quotable_types::line_ids::InstructionKind;
 
-pub const SUFFIX_ANY: &str = "_Line_Any";
+//pub const SUFFIX_ANY: &str = "_Line_Any";
 pub const SUFFIX_SPEECH: &str = "_Line_Speech";
 pub const SUFFIX_COMMAND: &str = "_Line_Command";
 pub const SUFFIX_OPTIONS_FORK: &str = "_VirtualLine_OptionsFork";
@@ -38,18 +38,15 @@ impl<'a> LineEnum<'a> {
 	}
 
 	pub fn typed_qualified(&self) -> String {
-		return match self.instruction_kind {
-			InstructionKind::Speech =>
-				format!("{}::{}", enum_type_speech(self.node_title), self.variant_name()),
-			InstructionKind::Command =>
-				format!("{}::{}", enum_type_command(self.node_title), self.variant_name()),
-			InstructionKind::OptionsFork =>
-				format!("{}::{}", enum_type_options_fork(self.node_title), self.variant_name()),
-		};
+		match self.instruction_kind {
+			InstructionKind::Speech => format!("{}::{}", enum_type_speech(self.node_title), self.variant_name()),
+			InstructionKind::Command => format!("{}::{}", enum_type_command(self.node_title), self.variant_name()),
+			InstructionKind::OptionsFork => format!("{}::{}", enum_type_options_fork(self.node_title), self.variant_name()),
+		}
 	}
 
 	pub fn variant_name(&self) -> String {
-		return line_variant(self.raw_id);
+		line_variant(self.raw_id)
 	}
 }
 
@@ -68,7 +65,7 @@ impl<'a> OptionLineEnum<'a> {
 	}
 
 	pub fn variant_name(&self) -> String {
-		return line_variant(self.raw_id);
+		line_variant(self.raw_id)
 	}
 }
 

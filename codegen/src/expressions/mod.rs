@@ -1,4 +1,5 @@
-#[cfg(test)] pub mod tests;
+#[cfg(test)]
+pub mod tests;
 pub mod yarn_lit;
 pub mod yarn_ops;
 pub mod yarn_expr;
@@ -6,23 +7,23 @@ pub mod built_in_calls;
 pub mod declaration_ty;
 pub mod custom_parser;
 
+use anyhow::{anyhow, Result};
 use custom_parser::CustomExpr;
-use std::ops::Deref;
+use declaration_ty::DeclarationTy;
+use quote::ToTokens;
+use syn::Stmt;
 use yarn_expr::YarnExpr;
 use yarn_lit::YarnLit;
 use yarn_ops::{YarnBinaryOp, YarnUnaryOp};
-use anyhow::{Result, anyhow};
-use quote::ToTokens;
-use syn::Stmt;
-use declaration_ty::DeclarationTy;
 
 type SynExpr = syn::Expr;
+#[allow(unused)]
 type SynError = syn::Error;
 type SynBinOp = syn::BinOp;
 type SynLit = syn::Lit;
 type SynUnaryOp = syn::UnOp;
 
-
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub enum ParseErrorType {
 	Syn(SynError),
@@ -36,7 +37,7 @@ pub fn parse_yarn_expr(input: &str) -> Result<YarnExpr> {
 }
 
 fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
-	return match expr {
+	match expr {
 		SynExpr::Binary(binary_expr) => {
 			let yarn_op = YarnBinaryOp::try_from_syn(binary_expr.op)?;
 			let left = parse_from_syn_expr(*binary_expr.left)?;
@@ -46,64 +47,64 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 				left: Box::from(left),
 				right: Box::from(right),
 			})
-		},
+		}
 		SynExpr::Call(call) => {
-			let func_name =
-				ToTokens::into_token_stream(call.func).to_string();
+			let func_name = ToTokens::into_token_stream(call.func).to_string();
 
-			let args: Vec<YarnExpr> =
-				call.args
-				    .into_iter()
-				    .map(parse_from_syn_expr)
-				    .try_collect()?;
-			
+			let args: Vec<YarnExpr> = call
+				.args
+				.into_iter()
+				.map(parse_from_syn_expr)
+				.try_collect()?;
+
 			YarnExpr::parse_call(func_name, args)
-		},
+		}
 		SynExpr::Group(group) => {
 			let expr = parse_from_syn_expr(*group.expr)?;
 			Ok(YarnExpr::Parenthesis(Box::from(expr)))
-		},
+		}
 		SynExpr::Lit(literal) => {
 			let lit = YarnLit::try_from_syn(literal.lit)?;
 			Ok(YarnExpr::Lit(lit))
-		},
+		}
 		SynExpr::Paren(parenthesized_expr) => {
 			let expr = parse_from_syn_expr(*parenthesized_expr.expr)?;
 			Ok(YarnExpr::Parenthesis(Box::from(expr)))
-		},
+		}
 		SynExpr::Unary(unary_expr) => {
-			fn unwraps_into_int(expr: &Box<YarnExpr>) -> Option<i64> {
+			fn unwraps_into_int(expr: &YarnExpr) -> Option<i64> {
 				let unwrapped = without_parenthesis(expr);
-				return match unwrapped.deref() {
+				return match unwrapped {
 					YarnExpr::Lit(YarnLit::Int(i)) => Some(*i),
 					_ => None,
 				};
 
-				fn without_parenthesis(expr: &Box<YarnExpr>) -> &Box<YarnExpr> {
-					match expr.deref() {
+				fn without_parenthesis(expr: &YarnExpr) -> &YarnExpr {
+					match expr {
 						YarnExpr::Parenthesis(inner) => without_parenthesis(inner),
 						_ => expr,
 					}
 				}
 			}
-			fn unwraps_into_float(expr: &Box<YarnExpr>) -> Option<f64> {
+
+			fn unwraps_into_float(expr: &YarnExpr) -> Option<f64> {
 				let unwrapped = without_parenthesis(expr);
-				return match unwrapped.deref() {
+				return match unwrapped {
 					YarnExpr::Lit(YarnLit::Float(i)) => Some(*i),
 					_ => None,
 				};
 
-				fn without_parenthesis(expr: &Box<YarnExpr>) -> &Box<YarnExpr> {
-					match expr.deref() {
+				fn without_parenthesis(expr: &YarnExpr) -> &YarnExpr {
+					match expr {
 						YarnExpr::Parenthesis(inner) => without_parenthesis(inner),
 						_ => expr,
 					}
 				}
 			}
-			
+
 			let yarn_op = YarnUnaryOp::try_from_syn(unary_expr.op)?;
 			let right = Box::from(parse_from_syn_expr(*unary_expr.expr)?);
-			
+
 			match yarn_op {
 				YarnUnaryOp::Negate => {
 					if let Some(int) = unwraps_into_int(&right) {
@@ -116,7 +117,7 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 							right,
 						})
 					}
-				},
+				}
 				YarnUnaryOp::Not => {
 					Ok(YarnExpr::UnaryOp {
 						yarn_op,
@@ -124,14 +125,14 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 					})
 				}
 			}
-		},
+		}
 		SynExpr::Array(array) => {
 			if array.elems.len() != 1 {
 				Err(anyhow!("Array expressions are not allowed: {array:?}"))
 			} else {
 				parse_from_syn_expr(array.elems.into_iter().next().unwrap())
 			}
-		},
+		}
 		SynExpr::Block(mut inner) => {
 			if inner.block.stmts.len() != 1 {
 				Err(anyhow!("Rust code is not allowed: {inner:?}"))
@@ -152,21 +153,21 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 					}
 				}
 			}
-		},
+		}
 		SynExpr::Cast(cast) => {
 			let expr = parse_from_syn_expr(*cast.expr)?;
-			
+
 			let unparsed_ty = *cast.ty;
-			let Some(cast_ty) = DeclarationTy::from_syn(unparsed_ty.clone()) 
-				else {
-					return Err(anyhow!("Invalid cast type: {unparsed_ty:?}"));
-				};
-			
+			let Some(cast_ty) = DeclarationTy::from_syn(unparsed_ty.clone())
+			else {
+				return Err(anyhow!("Invalid cast type: {unparsed_ty:?}"));
+			};
+
 			Ok(YarnExpr::Cast {
 				cast_ty,
 				expr: Box::from(expr),
 			})
-		},
+		}
 		SynExpr::Verbatim(verbatim) => {
 			let verb_str = verbatim.to_string().trim().to_string();
 			if verb_str.is_empty() {
@@ -178,7 +179,7 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 			} else {
 				Ok(YarnExpr::Identifier(verb_str))
 			}
-		},
+		}
 		SynExpr::Path(path) => {
 			if path.qself.is_some() {
 				Err(anyhow!("Path expressions are not allowed: {path:?}"))
@@ -187,7 +188,7 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 			} else {
 				Err(anyhow!("Path expressions are not allowed: {path:?}"))
 			}
-		},
+		}
 		invalid_expr => {
 			let ty_msg = match invalid_expr {
 				SynExpr::Array(_) => "array",
@@ -220,8 +221,8 @@ fn parse_from_syn_expr(expr: SynExpr) -> Result<YarnExpr> {
 				SynExpr::Yield(_) => "yield",
 				_ => unreachable!()
 			};
-			
+
 			Err(anyhow!("Invalid expression type: {ty_msg}: {invalid_expr:?}"))
 		}
-	};
+	}
 }

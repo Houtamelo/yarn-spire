@@ -31,15 +31,15 @@ pub struct YarnScope {
 
 impl YarnScope {
 	pub fn indent(&self) -> Indent {
-		return self.indent;
+		self.indent
 	}
 	
 	pub fn into_flows(self) -> impl Iterator<Item = Flow> {
-		return self.flows.into_iter();
+		self.flows.into_iter()
 	}
 
 	pub fn flows(&self) -> &[Flow] {
-		return &self.flows;
+		&self.flows
 	}
 }
 
@@ -73,7 +73,7 @@ pub fn read_next_scope(parent_indent: Indent, lines_iter: &mut Peekable<IntoIter
 				let choices =
 					OptionsFork::build(self_indent, first_option, lines_iter)?;
 
-				if flat_lines.len() > 0 {
+				if !flat_lines.is_empty() {
 					flows.push(Flow::Flat(flat_lines));
 					flat_lines = Vec::new();
 				}
@@ -89,7 +89,7 @@ pub fn read_next_scope(parent_indent: Indent, lines_iter: &mut Peekable<IntoIter
 			Content::If(if_) => {
 				let if_branch = IfBranch::build(self_indent, if_, lines_iter)?;
 
-				if flat_lines.len() > 0 {
+				if !flat_lines.is_empty() {
 					flows.push(Flow::Flat(std::mem::take(&mut flat_lines)));
 				}
 
@@ -112,11 +112,11 @@ pub fn read_next_scope(parent_indent: Indent, lines_iter: &mut Peekable<IntoIter
 		}
 	}
 
-	if flat_lines.len() > 0 {
+	if !flat_lines.is_empty() {
 		flows.push(Flow::Flat(flat_lines));
 	}
 
-	return if flows.len() > 0 {
+	if !flows.is_empty() {
 		Ok(Some(
 			YarnScope {
 				indent: self_indent,
@@ -124,5 +124,5 @@ pub fn read_next_scope(parent_indent: Indent, lines_iter: &mut Peekable<IntoIter
 			}))
 	} else {
 		Ok(None)
-	};
+	}
 }

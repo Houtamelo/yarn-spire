@@ -1,3 +1,4 @@
+#[allow(unused)]
 pub fn char_index_to_byte_index(str_ref: &str, char_index: usize) -> usize {
 	return str_ref
 		.chars()
@@ -14,6 +15,7 @@ fn test_char_index_to_byte_index() {
 	assert_eq!(char_index_to_byte_index("utf16: \u{1F600} \u{1F601} \u{1F602}", 11), 17);
 }
 
+#[allow(unused)]
 pub fn next_byte_index(line: &str, mut current_index: usize) -> usize {
 	let line_len = line.len();
 	if line_len <= current_index {
@@ -25,7 +27,7 @@ pub fn next_byte_index(line: &str, mut current_index: usize) -> usize {
 		current_index += 1;
 	}
 
-	return current_index;
+	current_index
 }
 
 pub fn indent_level(line: &impl AsRef<str>) -> isize {

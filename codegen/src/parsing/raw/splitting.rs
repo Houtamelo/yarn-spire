@@ -33,16 +33,11 @@ enum State<'a> {
 	},
 }
 
-pub fn split_into_unparsed_nodes(lines: &[UnparsedLine])
-                                 -> Result<Vec<UnparsedNode>> {
-	let mut as_delimiters =
-		lines.iter()
-		     .map(|line| as_delimiter(line));
-	
+pub fn split_into_unparsed_nodes(lines: &[UnparsedLine]) -> Result<Vec<UnparsedNode>> {
 	let mut nodes = Vec::new();
 	let mut state = Outside { lines: vec![] };
 	
-	while let Some(maybe_delimiter) = as_delimiters.next() {
+	for maybe_delimiter in lines.iter().map(|line| as_delimiter(line)) {
 		match &mut state {
 			Outside { lines } =>
 				match maybe_delimiter {
@@ -93,7 +88,7 @@ pub fn split_into_unparsed_nodes(lines: &[UnparsedLine])
 		}
 	} 
 	
-	return match state {
+	match state {
 		Outside { lines } =>
 			if lines.is_empty() {
 				Ok(nodes)
@@ -114,7 +109,7 @@ pub fn split_into_unparsed_nodes(lines: &[UnparsedLine])
 				 Help: A node is started by writing a line with three `hyphens` (`---`), \
 				 and ended by writing a line with three `equals signs` (`===`)."
 			)),
-	};
+	}
 }
 
 /*

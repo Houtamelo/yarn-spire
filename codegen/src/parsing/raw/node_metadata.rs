@@ -1,4 +1,6 @@
 use anyhow::{Result, anyhow};
+use genco::prelude::{FormatInto, Rust};
+use genco::{quote_in, Tokens};
 use crate::parsing::macros::strip_start_then_trim;
 use crate::UnparsedLine;
 
@@ -6,6 +8,15 @@ use crate::UnparsedLine;
 pub enum TrackingSetting {
 	Always,
 	Never,
+}
+
+impl FormatInto<Rust> for TrackingSetting {
+	fn format_into(self, tokens: &mut Tokens<Rust>) {
+		quote_in!(*tokens => $(match self {
+			TrackingSetting::Always => "TrackingSetting::Always",
+			TrackingSetting::Never => "TrackingSetting::Never",
+		}))
+	}
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,10 +38,10 @@ enum MetaLine {
 fn parse_meta_line(source_line: &UnparsedLine) -> Result<MetaLine> {
 	let mut text = source_line.text.trim();
 
-	return if strip_start_then_trim!(text, "title" | "Title" | "TITLE")
+	if strip_start_then_trim!(text, "title" | "Title" | "TITLE")
 		&& strip_start_then_trim!(text, ':') {
 		
-		if text.len() > 0 {
+		if !text.is_empty() {
 			Ok(MetaLine::Title(text.to_string()))
 		} else {
 			Err(anyhow!(
@@ -61,7 +72,7 @@ fn parse_meta_line(source_line: &UnparsedLine) -> Result<MetaLine> {
 		}
 	} else {
 		Ok(MetaLine::Custom(text.to_string()))
-	};
+	}
 }
 
 pub fn parse_metadata<'a>(lines: impl IntoIterator<Item = &'a UnparsedLine>) -> Result<NodeMetadata> {

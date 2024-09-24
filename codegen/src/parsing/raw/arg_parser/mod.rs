@@ -11,7 +11,7 @@ pub struct ArgsIter {
 
 impl Display for ArgsIter {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{}", TokenStream::from_iter(self.tokens.clone()).to_string())
+		write!(f, "{}", TokenStream::from_iter(self.tokens.clone()))
 	}
 }
 
@@ -25,7 +25,7 @@ impl Iterator for ArgsIter {
 		while let Some(next) = token_stream.front() {
 			let Some(previous) = results.last()
 				else {
-					results.push(token_stream.pop_front().unwrap());
+					results.push(token_stream.pop_front()?);
 					continue;
 				};
 			
@@ -41,24 +41,22 @@ impl Iterator for ArgsIter {
 						break;
 					},
 					_ => {
-						results.push(token_stream.pop_front().unwrap());
+						results.push(token_stream.pop_front()?);
 					},
 				}
 			} else if let TokenTree::Punct(_) = previous {
-				results.push(token_stream.pop_front().unwrap());
+				results.push(token_stream.pop_front()?);
 			} else {
 				break;
 			}
 		}
 
-		return if results.is_empty() {
+		if results.is_empty() {
 			None
 		} else {
-			let tokens_str =
-				TokenStream::from_iter(results).to_string();
-
+			let tokens_str = TokenStream::from_iter(results).to_string();
 			Some(expressions::parse_yarn_expr(tokens_str.as_str()))
-		};
+		}
 	}
 }
 

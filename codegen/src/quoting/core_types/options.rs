@@ -1,9 +1,19 @@
+use crate::config::YarnConfig;
+use crate::quoting::quotable_types::enums::{SUFFIX_OPTIONS_FORK, SUFFIX_OPTION_LINE};
+use crate::quoting::quotable_types::node::{IDNode, LinesMap};
+use crate::quoting::util::{Comments, SeparatedItems};
 use genco::lang::rust::Tokens;
 use genco::quote;
-use crate::config::YarnConfig;
-use crate::quoting::util::{Comments, SeparatedItems};
-use crate::quoting::quotable_types::enums::{SUFFIX_OPTION_LINE, SUFFIX_OPTIONS_FORK};
-use crate::quoting::quotable_types::node::{IDNode, LinesMap};
+
+pub fn all_tokens(cfg: &YarnConfig, nodes_mapped: &[(&IDNode, LinesMap)]) -> Tokens {
+	let traits_and_imports = tokens_traits_and_imports(cfg);
+	let enum_tokens = tokens_enums(nodes_mapped);
+
+	quote! {
+		$(traits_and_imports)
+		$(enum_tokens)
+	}
+}
 
 fn tokens_traits_and_imports(cfg: &YarnConfig) -> Tokens {
 	quote! {
@@ -12,23 +22,20 @@ fn tokens_traits_and_imports(cfg: &YarnConfig) -> Tokens {
 		#![allow(unused)]
 		
 		use std::borrow::Cow;
-		use enum_dispatch::enum_dispatch;
 		use houtamelo_utils::prelude::CountOrMore;
 		use serde::{Deserialize, Serialize};
 		use $(&cfg.shared_qualified)::*;
 		
-		#[enum_dispatch(OptionsFork)]
-		pub trait OptionsForkTrait {
+		pub trait IOptionsFork {
+			#[must_use]
 			fn options(&self) -> CountOrMore<1, OptionLine>;
 		}
 		
-		#[enum_dispatch(OptionLine)]
-		pub trait OptionLineTrait {
-			fn advance(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
-		
+		pub trait IOptionLine {
 			$(Comments([
 				"The line's unique identifier, if specified, for more, \n\
 				 see [metadata#line](https://docs.yarnspinner.dev/getting-started/writing-in-yarn/tags-metadata#line)"]))
+			#[must_use]
 			fn line_id(&self) -> &'static str;
 
 			$(Comments([
@@ -40,15 +47,10 @@ fn tokens_traits_and_imports(cfg: &YarnConfig) -> Tokens {
 			    r#"### Example"#,
 			    r#"Consider the line: `-> Here's your option A #houtamelo:happy #narrator:sad`"#,
 			    r#"The tags list would be: `vec!["houtamelo:happy", "narrator:sad"]`"#]))
-			fn tags(&self) -> &'static [&'static str];
-		
-			$(Comments([
-				r#"The text representing the choice the player can make."#,
-				r#"___"#,
-				r#"### Example"#,
-				r#"Consider the line: `-> Jump off the cliff`"#,
-				r#"The text would be: `Jump off the cliff`"#]))
-			fn text(&self, storage: &$(&cfg.storage_direct)) -> Cow<'static, str>;
+			#[must_use]
+			fn tags(&self) -> &'static [&'static str] {
+				&[]
+			}
 		
 			$(Comments([
 				r#"The evaluated condition, if any."#,
@@ -65,66 +67,76 @@ fn tokens_traits_and_imports(cfg: &YarnConfig) -> Tokens {
 				r#"- Although Evaluating the condition is done by YarnSpinner, it is up to the developer to decide what to do with the result,"#,
 				r#" YarnSpinner will not forbid the player from picking an option even if it has a condition evaluated to `false`."#,
 				r#"- The `[condition]` argument can be any valid expression in the YarnSpinner syntax (`{5 + 3 > 8}`, `$player_awake and $gold > 10`, ...)"#]))
-			fn is_available(&self, storage: &$(&cfg.storage_direct)) -> Option<bool>;
+			#[must_use]
+			fn is_available(&self, storage: &$(&cfg.storage_direct)) -> Option<bool> {
+				None
+			}
 			
+			$(Comments([
+				r#"The text representing the choice the player can make."#,
+				r#"___"#,
+				r#"### Example"#,
+				r#"Consider the line: `-> Jump off the cliff`"#,
+				r#"The text would be: `Jump off the cliff`"#]))
+			#[must_use]
+			fn text(&self, storage: &$(&cfg.storage_direct)) -> Cow<'static, str>;
+			
+			$(Comments([
+				r#"The fork this option line belongs to."#,
+				r#"___"#,
+				r#"### Example"#,
+				r#"Consider the lines:"#,
+				r#"-> Say hello."#,
+				r#"-> Stay silent."#,
+				r#"The fork would contain two options: `Say hello` and `Stay silent`."#]))
+			#[must_use]
 			fn fork(&self) -> OptionsFork;
 			
+			#[must_use]
 			fn index_on_fork(&self) -> usize;
+			
+			#[must_use]
+			fn advance(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
 		}
 	}
 }
 
 fn tokens_enums(nodes_mapped: &[(&IDNode, LinesMap)]) -> Tokens {
-	let forks =
-		nodes_mapped
-			.iter()
-			.filter_map(|(node, lines_map)| {
-				if lines_map.options_forks.len() > 0 {
-					let title = node.metadata.title.clone() + SUFFIX_OPTIONS_FORK;
-					Some(quote! { $(title) })
-				} else {
-					None
-				}
-			});
-	
-	let lines =
-		nodes_mapped
-			.iter()
-			.filter_map(|(node, lines_map)| {
-				if lines_map.option_lines.len() > 0 {
-					let title = node.metadata.title.clone() + SUFFIX_OPTION_LINE;
-					Some(quote! { $(title) })
-				} else {
-					None
-				}
-			});
-	
+	let forks = nodes_mapped
+		.iter()
+		.filter_map(|(node, lines_map)| {
+			if !lines_map.options_forks.is_empty() {
+				let title = node.metadata.title.clone() + SUFFIX_OPTIONS_FORK;
+				Some(quote! { $(title) })
+			} else {
+				None
+			}
+		});
+
+	let lines = nodes_mapped
+		.iter()
+		.filter_map(|(node, lines_map)| {
+			if !lines_map.option_lines.is_empty() {
+				let title = node.metadata.title.clone() + SUFFIX_OPTION_LINE;
+				Some(quote! { $(title) })
+			} else {
+				None
+			}
+		});
+
 	quote! {
-		#[enum_dispatch]
-		#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+		#[derive(Debug, Copy, Clone)]
+		#[derive(PartialEq, Eq, Hash)]
+		#[derive(Serialize, Deserialize)]
 		pub enum OptionsFork {
 			$(SeparatedItems(forks, ",\n"))
 		}
 		
-		#[enum_dispatch]
-		#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+		#[derive(Debug, Copy, Clone)]
+		#[derive(PartialEq, Eq, Hash)]
+		#[derive(Serialize, Deserialize)]
 		pub enum OptionLine {
 			$(SeparatedItems(lines, ",\n"))
 		}
-	}
-}
-
-pub fn all_tokens(cfg: &YarnConfig,
-                  nodes_mapped: &[(&IDNode, LinesMap)])
-                  -> Tokens {
-	let traits_and_imports = 
-		tokens_traits_and_imports(cfg);
-	let enum_tokens = 
-		tokens_enums(nodes_mapped);
-	
-	quote! {
-		$(traits_and_imports)
-		
-		$(enum_tokens)
 	}
 }

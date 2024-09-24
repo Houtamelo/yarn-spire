@@ -11,21 +11,22 @@ pub enum YarnUnaryOp {
 }
 
 impl YarnUnaryOp {
+	#[allow(unused)]
 	pub(super) fn resolve(self) -> &'static str {
-		return match self {
+		match self {
 			YarnUnaryOp::Not => "!",
 			YarnUnaryOp::Negate => "-",
-		};
+		}
 	}
 	
 	pub(super) fn try_from_syn(unary_syn: SynUnaryOp) -> Result<Self> {
-		return match unary_syn {
+		match unary_syn {
 			SynUnaryOp::Not(_) => Ok(YarnUnaryOp::Not),
 			SynUnaryOp::Neg(_) => Ok(YarnUnaryOp::Negate),
 			invalid_op => {
 				Err(anyhow!("Invalid unary operator: {invalid_op:?}"))
 			},
-		};
+		}
 	}
 }
 
@@ -59,7 +60,7 @@ pub enum YarnBinaryOp {
 
 impl YarnBinaryOp {
 	pub(super) fn try_from_syn(syn_op: SynBinOp) -> Result<Self> {
-		return match syn_op {
+		match syn_op {
 			SynBinOp::Add(_) => Ok(YarnBinaryOp::Add),
 			SynBinOp::Sub(_) => Ok(YarnBinaryOp::Sub),
 			SynBinOp::Mul(_) => Ok(YarnBinaryOp::Mul), 
@@ -79,7 +80,7 @@ impl YarnBinaryOp {
 			invalid_op => {
 				Err(anyhow!("Invalid binary operator: {invalid_op:?}"))
 			},
-		};
+		}
 	}
 }
 

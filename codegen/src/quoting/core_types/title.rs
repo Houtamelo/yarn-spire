@@ -1,8 +1,18 @@
+use crate::config::YarnConfig;
+use crate::quoting::quotable_types::node::IDNode;
+use crate::quoting::util::{Comments, SeparatedItems};
 use genco::lang::rust::Tokens;
 use genco::quote;
-use crate::config::YarnConfig;
-use crate::quoting::util::{Comments, SeparatedItems};
-use crate::quoting::quotable_types::node::IDNode;
+
+pub fn all_tokens(cfg: &YarnConfig, nodes: &[IDNode]) -> Tokens {
+	let imports_and_trait = tokens_imports_and_trait(cfg);
+	let enum_tokens = tokens_enum(cfg, nodes);
+
+	quote! {
+		$imports_and_trait
+		$enum_tokens
+	}
+}
 
 fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 	quote! {
@@ -14,122 +24,52 @@ fn tokens_imports_and_trait(cfg: &YarnConfig) -> Tokens {
 		use serde::{Deserialize, Serialize};
 		use $(&cfg.shared_qualified)::*;
 		
+		pub trait INodeTitle {
+			#[must_use]
+			fn tags(&self) -> &'static[&'static str];
+			#[must_use]
+			fn tracking(&self) -> TrackingSetting;
+			#[must_use]
+			fn custom_metadata(&self) -> &'static[&'static str];
+			#[must_use]
+			fn start(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
+		}
+		
 		$(Comments([
-			"The original YarnSpinner's \n\
+			"The original YarnSpinner's \
 			[tracking setting](https://docs.yarnspinner.dev/getting-started/writing-in-yarn/tags-metadata#the-tracking-header)."]))
 		#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 		pub enum TrackingSetting {
 			Always,
 			Never,
 		}
-		
-		pub trait NodeTitleTrait {
-			fn tags(&self) -> &'static[&'static str];
-			fn tracking(&self) -> TrackingSetting;
-			fn custom_metadata(&self) -> &'static[&'static str];
-			fn start(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield;
-		}
 	}
 }
 
-fn tokens_enum(cfg: &YarnConfig,
-               nodes: &[IDNode])
-               -> Tokens {
-	let variants =
-		nodes.iter()
-		     .map(|node| {
-			     quote! { $(&node.metadata.title) }
-		     });
-	
-	let tags_impls =
-		nodes.iter()
-		     .map(|node| {
-			     let title = &node.metadata.title;
-			     quote! {
-			     	NodeTitle::$title =>{ 
-			     		$title.tags()
-				     }
-			     }
-		     });
-	
-	let tracking_impls =
-		nodes.iter()
-		     .map(|node| {
-			     let title = &node.metadata.title;
-			     quote! {
-			     	NodeTitle::$title => {
-			     		$title.tracking()
-				     }
-			     }
-		     });
-	
-	let custom_metadata_impls =
-		nodes.iter()
-		     .map(|node| {
-			     let title = &node.metadata.title;
-			     quote! {
-			     	NodeTitle::$title => {
-			     		$title.custom_metadata()
-				     }
-			     }
-		     });
-	
-	let start_impls =
-		nodes.iter()
-		     .map(|node| {
-			     let title = &node.metadata.title;
-			     quote! {
-			     	NodeTitle::$title => {
-					     $title.start(storage)
-				     }
-			     }
-		     });
+fn tokens_enum(cfg: &YarnConfig, nodes: &[IDNode]) -> Tokens {
+	let variants = nodes
+		.iter()
+		.map(|node| quote! { $(&node.metadata.title) });
 
 	quote! {
-		#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-		pub enum NodeTitle {
-			$(SeparatedItems(variants, ",\n"))
-		}
-		
-		impl NodeTitleTrait for NodeTitle {
-			fn tags(&self) -> &'static [&'static str] {
-				return match self {
-					$(SeparatedItems(tags_impls, ",\n"))
-				};
+		declarative_type_state::unit_enum_delegated! {
+			ENUM_OUT: {
+				#[derive(Debug, Copy, Clone)]
+				#[derive(PartialEq, Eq, Hash)]
+				#[derive(Serialize, Deserialize)]
+				pub enum NodeTitle {
+					$(SeparatedItems(variants, ",\n"))
+				}
 			}
-		
-			fn tracking(&self) -> TrackingSetting {
-				return match self {
-					$(SeparatedItems(tracking_impls, ",\n"))
-				};
-			}
-		
-			fn custom_metadata(&self) -> &'static [&'static str] {
-				return match self {
-					$(SeparatedItems(custom_metadata_impls, ",\n"))
-				};
-			}
-		
-			fn start(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield {
-				return match self {
-					$(SeparatedItems(start_impls, ",\n"))
-				};
+			
+			DELEGATES: {
+				impl trait INodeTitle {
+					[fn tags(&self) -> &'static [&'static str]]
+					[fn tracking(&self) -> TrackingSetting]
+					[fn custom_metadata(&self) -> &'static [&'static str]]
+					[fn start(&self, storage: &mut $(&cfg.storage_direct)) -> YarnYield]
+				}
 			}
 		}
-	}
-}
-
-pub fn all_tokens(cfg: &YarnConfig,
-                  nodes: &[IDNode])
-                  -> Tokens {
-	let imports_and_trait = 
-		tokens_imports_and_trait(cfg);
-	let enum_tokens = 
-		tokens_enum(cfg, nodes);
-
-	quote! {
-		$imports_and_trait
-		
-		$enum_tokens
 	}
 }

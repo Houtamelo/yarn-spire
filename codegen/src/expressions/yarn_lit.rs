@@ -14,7 +14,7 @@ pub enum YarnLit {
 
 impl YarnLit {
 	pub(super) fn try_from_syn(syn_lit: SynLit) -> Result<Self> {
-		return match syn_lit {
+		match syn_lit {
 			SynLit::Str (str_lit  ) => Ok(YarnLit::Str(str_lit.value())),
 			SynLit::Bool(bool_lit) => Ok(YarnLit::Bool(bool_lit.value)),
 			SynLit::Int(int_lit) => match int_lit.base10_parse() {
@@ -32,19 +32,19 @@ impl YarnLit {
 			invalid_lit => {
 				Err(anyhow!("Invalid literal: {invalid_lit:?}"))
 			},
-		};
+		}
 	}
 }
 
 impl PartialEq for YarnLit {
 	fn eq(&self, other: &Self) -> bool {
-		return match (self, other) {
+		match (self, other) {
 			(YarnLit::Int(i1), YarnLit::Int(i2)) => i1 == i2,
 			(YarnLit::Float(f1), YarnLit::Float(f2)) => f64::abs(f1 - f2) <= 0.000001,
 			(YarnLit::Str(s1), YarnLit::Str(s2)) => s1 == s2,
 			(YarnLit::Bool(b1), YarnLit::Bool(b2)) => b1 == b2,
 			_ => false,
-		};
+		}
 	}
 }
 
@@ -64,7 +64,7 @@ impl FormatInto<Rust> for &YarnLit {
 						count += 1;
 					}
 
-					return usize::max(count, 1);
+					usize::max(count, 1)
 				}
 				
 				let cases = count_decimal_cases(f);

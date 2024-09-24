@@ -3,7 +3,7 @@ use crate::shared_internal::*;
 /// - A type that provides type-safe information about a variable that can be read/written inside a coroutine.
 /// - You must implement this trait for every single variable that needs to be accessed/mutated inside a coroutine.
 /// - This may seem like boilerplate, but this is what allows the compiler to **ensure type safety inside Nodes**. 
-/// It also **ensures** that you can't make typos when writing variable names or perform operations that don't make sense for a given variable type,
+///   It also **ensures** that you can't make typos when writing variable names or perform operations that don't make sense for a given variable type,
 /// such as comparing a `String` with a number.
 ///
 /// # Example

@@ -49,11 +49,11 @@ impl DeclarationTy {
 				}
 			};
 		
-		return Self::from_str(&ty_str);
+		Self::from_str(&ty_str)
 	}
 	
 	pub fn from_str(str: &str) -> Option<Self> {
-		return Some(match str.to_ascii_lowercase().as_str() {
+		Some(match str.to_ascii_lowercase().as_str() {
 			"string" => DeclarationTy::String,
 			"bool" => DeclarationTy::bool,
 			"number" => DeclarationTy::number,
@@ -74,7 +74,7 @@ impl DeclarationTy {
 			_ => {
 				return None;
 			}
-		});
+		})
 	}
 }
 

@@ -11,12 +11,12 @@ syn = { version = "2.0", features = ["full", "extra-traits", "visit", "visit-mut
 glob = "0.3"
 trim-in-place = "0.1"
 fancy-regex = "0.13"
-houtamelo_utils = "1.1"
+houtamelo_utils = "3.0"
 thiserror = "1.0"
 anyhow = "1.0"
-parsel = "0.12"
+parsel = "0.16"
 pretty_assertions = { version = "1.4", features = ["unstable"] }
 genco = "0.17"
 toml = "0.8"
-serde = "1.0"
-encoding_rs_io = "0.1.7"
+serde = { version = "1.0", features = ["derive"] }
+encoding_rs_io = "0.1"

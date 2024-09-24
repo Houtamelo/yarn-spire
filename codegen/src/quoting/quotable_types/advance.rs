@@ -27,7 +27,7 @@ impl NextFn for &IDFlatLine {
 				};
 				
 				quote_in!(*tokens => return YarnYield::Instruction($(line_enum.any_qualified()).into()); );
-				return true;
+				true
 			},
 			IDFlatLine::CustomCommand(IDCustomCommand { line_id, .. }) => {
 				if !tokens.is_empty() {
@@ -41,7 +41,7 @@ impl NextFn for &IDFlatLine {
 				};
 				
 				quote_in!(*tokens => return YarnYield::Instruction($(line_enum.any_qualified()).into()); );
-				return true;
+				true
 			},
 			IDFlatLine::BuiltInCommand(built_in_command) => {
 				match built_in_command {
@@ -79,7 +79,7 @@ impl NextFn for &IDFlatLine {
 							}
 						}
 						
-						return false;
+						false
 					},
 					BuiltInCommand::Jump { node_destination_title, .. } => {
 						if !tokens.is_empty() {
@@ -97,7 +97,7 @@ impl NextFn for &IDFlatLine {
 							return $node_destination_title.start(storage);
 						);
 
-						return true;
+						true
 					},
 					BuiltInCommand::Stop { .. } => {
 						if !tokens.is_empty() {
@@ -105,7 +105,7 @@ impl NextFn for &IDFlatLine {
 						}
 						
 						quote_in!(*tokens => return YarnYield::Finished;);
-						return true;
+						true
 					},
 				}
 			},
@@ -126,7 +126,7 @@ impl NextFn for &IDOptionsFork {
 		}; 
 		
 		quote_in!(*tokens => return YarnYield::Instruction($(line_enum.any_qualified()).into()););
-		return true;
+		true
 	}
 }
 
@@ -203,7 +203,7 @@ impl NextFn for &IDIfBranch {
 			all_returned = false;
 		}
 		
-		return all_returned;
+		all_returned
 	}
 }
 
@@ -230,13 +230,13 @@ fn flows_next_fn<'a>(flows: impl IntoIterator<Item = &'a IDFlow>, tokens: &mut T
 		}
 	}
 	
-	return false;
+	false
 }
 
 
 impl NextFn for &IDScope {
 	fn quote_next_fn(self, tokens: &mut Tokens, node_title: &str) -> bool {
-		return flows_next_fn(&self.flows, tokens, node_title);
+		flows_next_fn(&self.flows, tokens, node_title)
 	}
 }
 
@@ -270,5 +270,5 @@ pub fn build_next_fn<'a>(flats_after: impl IntoIterator<Item = &'a IDFlatLine>,
 		return YarnYield::Finished;
 	);
 	
-	return tokens;
+	tokens
 }

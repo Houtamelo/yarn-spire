@@ -1,3 +1,7 @@
+#![allow(clippy::tabs_in_doc_comments)]
+
+use crate::shared_internal::*;
+
 pub mod options;
 pub mod instruction;
 pub mod runtime;
@@ -30,4 +34,25 @@ pub(crate) mod shared_internal {
 	pub use super::var_trait::*;
 }
 
+/*
+fn test() {
+	let mut storage = Storage::new();
+	
+	let node = Ch01_Awakening;
+	
+	match node.start(&mut storage) {
+		YarnYield::Instruction(instruction) => {
+			match instruction {
+				Instruction::Speech(speech) => {
+					speech.next(&mut storage);
+				}
+				Instruction::Command(cmd) => {}
+				Instruction::Options(options) => {}
+			}
+		}
+		YarnYield::Finished => return,
+	}
+	
+}
+*/
 

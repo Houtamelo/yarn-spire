@@ -14,7 +14,7 @@ pub fn get_or_create_file(path: &PathBuf, allow_overwrite: bool) -> Result<File>
 			.create(true)
 			.write(true)
 			.truncate(true)
-			.open(&path)
+			.open(path)
 			.map_err(|err| anyhow!(
 				"Could not create file at `{path:?}`.\n\
 				 Error: {err}"))
@@ -27,7 +27,7 @@ pub fn get_or_create_file(path: &PathBuf, allow_overwrite: bool) -> Result<File>
 			.create(false)
 			.write(true)
 			.truncate(true)
-			.open(&path)
+			.open(path)
 			.map_err(|err| anyhow!(
 				"Could not open file at `{path:?}`.\n\
 				 Error: {err}"))
@@ -35,20 +35,11 @@ pub fn get_or_create_file(path: &PathBuf, allow_overwrite: bool) -> Result<File>
 }
 
 pub fn write_to_file(path: &PathBuf, mut file: File, tokens: Tokens) -> Result<()> {
-	let fmt =
-		genco::fmt::Config::from_lang::<Rust>()
-			.with_indentation(genco::fmt::Indentation::Space(4));
-
-	let config =
-		genco::lang::rust::Config::default();
-
-	let mut writer =
-		genco::fmt::IoWriter::new(&mut file);
-
+	let fmt = genco::fmt::Config::from_lang::<Rust>().with_indentation(genco::fmt::Indentation::Space(4));
+	let config = genco::lang::rust::Config::default();
+	let mut writer = genco::fmt::IoWriter::new(&mut file);
 	tokens.format_file(&mut writer.as_formatter(&fmt), &config)
-	      .map_err(|err| anyhow!(
-			"Could not write to `{path:?}`.\n\
-			 Error: {err}"))
+	      .map_err(|err| anyhow!("Could not write to `{path:?}`.\nError: {err}"))
 }
 
 pub fn delete_file_if_exists(path: &PathBuf) -> Result<()> {

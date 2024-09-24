@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use serde::{Deserialize, Serialize};
 
 use crate::instruction::YarnYield;
-use crate::shared_internal::{Ch01_Awakening_Line, NodeTitle, SpeechTrait, Storage};
+use crate::shared_internal::{Ch01_Awakening_Line, NodeTitle, ISpeechLine, Storage};
 use crate::shared_internal::vars::{mouth_taste, narrator};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -24,9 +24,9 @@ pub enum Ch01_Awakening_Speech {
 	option_look_2,
 }
 
-impl SpeechTrait for Ch01_Awakening_Speech {
+impl ISpeechLine for Ch01_Awakening_Speech {
 	fn next(&self, storage: &mut Storage) -> YarnYield {
-		return match self {
+		match self {
 			Ch01_Awakening_Speech::main_3 => 
 				YarnYield::Instruction(Ch01_Awakening_Line::main_4.into()),
 			Ch01_Awakening_Speech::branch_awake_1 => 
@@ -53,7 +53,7 @@ impl SpeechTrait for Ch01_Awakening_Speech {
 				YarnYield::Instruction(Ch01_Awakening_Line::main_14.into()),
 			Ch01_Awakening_Speech::main_14 => 
 				YarnYield::Instruction(Ch01_Awakening_Line::option_sleep_1.into()),
-		};
+		}
 	}
 
 	fn line_id(&self) -> &'static str {
@@ -61,7 +61,7 @@ impl SpeechTrait for Ch01_Awakening_Speech {
 	}
 
 	fn tags(&self) -> &'static [&'static str] {
-		return match self {
+		match self {
 			Ch01_Awakening_Speech::main_3 => &[],
 			Ch01_Awakening_Speech::branch_awake_1 => &["right:ethel_disgust"],
 			Ch01_Awakening_Speech::branch_awake_2 => &["right:ethel_tired"],
@@ -74,11 +74,11 @@ impl SpeechTrait for Ch01_Awakening_Speech {
 			Ch01_Awakening_Speech::option_look_1 => &["left:nema_tired"],
 			Ch01_Awakening_Speech::option_look_2 => &["left:nema_tired"],
 			Ch01_Awakening_Speech::main_14 => &[],
-		};
+		}
 	}
 
 	fn speaker(&self, storage: &Storage) -> Option<Cow<'static, str>> {
-		return match self {
+		match self {
 			Ch01_Awakening_Speech::main_3 => Some(storage.get_var::<narrator>().into()),
 			Ch01_Awakening_Speech::branch_awake_1 => Some("Ethel".into()),
 			Ch01_Awakening_Speech::branch_awake_2 => Some("Ethel".into()),
@@ -91,11 +91,11 @@ impl SpeechTrait for Ch01_Awakening_Speech {
 			Ch01_Awakening_Speech::option_look_1 => Some("Nema".into()),
 			Ch01_Awakening_Speech::option_look_2 => None,
 			Ch01_Awakening_Speech::main_14 => Some(storage.get_var::<narrator>().into()),
-		};
+		}
 	}
 
 	fn text(&self, storage: &Storage) -> Cow<'static, str> {
-		return match self {
+		match self {
 			Ch01_Awakening_Speech::main_3 =>
 				"You wake up. Something you shouldn't have done.".into(),
 			Ch01_Awakening_Speech::branch_awake_1 =>
@@ -122,6 +122,6 @@ impl SpeechTrait for Ch01_Awakening_Speech {
 				"You slip trying to get up.".into(),
 			Ch01_Awakening_Speech::main_14 =>
 				"And the scene ended here.".into(),
-		};
+		}
 	}
 }
